@@ -36,6 +36,12 @@ BABEL_DEFAULT_LANGUAGE = "en"
 BABEL_DEFAULT_TIMEZONE = "Europe/Zurich"
 
 ###############################################################################
+# JSONSchemas
+###############################################################################
+#: Hostname used in URLs for local JSONSchemas.
+JSONSCHEMAS_HOST = "127.0.0.1:5000"
+
+###############################################################################
 # CSRF
 ###############################################################################
 REST_CSRF_ENABLED = True
@@ -66,3 +72,13 @@ SESSION_COOKIE_SAMESITE = "Lax"
 #: should be set to the correct host and it is strongly recommended to only
 #: route correct hosts to the application.
 TRUSTED_HOSTS = ["localhost", "127.0.0.1"]
+
+#: Single Page Application host and routes, useful in templates/emails
+SPA_HOST = "https://127.0.0.1:3000"
+SPA_PATHS = dict(
+    literature="/literature/%(pid)s",
+    loan="/backoffice/loans",
+    patron="/backoffice/patrons",
+    profile="/profile",
+    search="/search?q=%(querystring)s",
+)
