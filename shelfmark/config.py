@@ -10,6 +10,11 @@ You overwrite and set instance-specific configuration by either:
 """
 
 
+def _(x):
+    """Identity function used to trigger string extraction."""
+    return x
+
+
 ###############################################################################
 # Debug
 ###############################################################################
@@ -34,6 +39,37 @@ RATELIMIT_GUEST_USER = "1000 per hour;100 per minute"
 BABEL_DEFAULT_LANGUAGE = "en"
 #: Default time zone
 BABEL_DEFAULT_TIMEZONE = "Europe/Zurich"
+###############################################################################
+# Email configuration
+###############################################################################
+#: Email address for support.
+SUPPORT_EMAIL = "info@example.org"
+#: Disable email sending by default.
+MAIL_SUPPRESS_SEND = True
+#: Email address for email notification sender.
+MAIL_NOTIFY_SENDER = "noreply@example.org"
+#: Email CC address(es) for email notifications.
+MAIL_NOTIFY_CC = []
+#: Email BCC address(es) for email notification.
+MAIL_NOTIFY_BCC = []
+# Enable sending mail to test recipients.
+ILS_MAIL_ENABLE_TEST_RECIPIENTS = False
+#: When ILS_MAIL_ENABLE_TEST_RECIPIENTS=True, all emails are sent here
+ILS_MAIL_NOTIFY_TEST_RECIPIENTS = ["onlyme@example.org"]
+
+###############################################################################
+# Assets
+###############################################################################
+#: Static files collection method (defaults to copying files).
+COLLECT_STORAGE = "flask_collect.storage.file"
+
+###############################################################################
+# Accounts
+###############################################################################
+#: Email address used as sender of account registration emails.
+SECURITY_EMAIL_SENDER = SUPPORT_EMAIL
+#: Email subject for account registration emails.
+SECURITY_EMAIL_SUBJECT_REGISTER = _("Welcome to Shelfmark!")
 
 ###############################################################################
 # JSONSchemas
