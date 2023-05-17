@@ -8,6 +8,7 @@ You overwrite and set instance-specific configuration by either:
 - Configuration file: ``<virtualenv prefix>/var/instance/invenio.cfg``
 - Environment variables: ``APP_<variable name>``
 """
+from datetime import timedelta
 
 
 def _(x):
@@ -70,6 +71,34 @@ COLLECT_STORAGE = "flask_collect.storage.file"
 SECURITY_EMAIL_SENDER = SUPPORT_EMAIL
 #: Email subject for account registration emails.
 SECURITY_EMAIL_SUBJECT_REGISTER = _("Welcome to Shelfmark!")
+#: Redis session storage URL.
+ACCOUNTS_SESSION_REDIS_URL = "redis://localhost:6379/1"
+
+###############################################################################
+# Celery configuration
+###############################################################################
+BROKER_URL = "amqp://guest:guest@localhost:5672/"
+#: URL of message broker for Celery (default is RabbitMQ).
+CELERY_BROKER_URL = "amqp://guest:guest@localhost:5672/"
+#: URL of backend for result storage (default is Redis).
+CELERY_RESULT_BACKEND = "redis://localhost:6379/2"
+#: Scheduled tasks configuration (aka cronjobs).
+CELERY_BEAT_SCHEDULE = {
+    "indexer": {
+        "task": "invenio_indexer.tasks.process_bulk_queue",
+        "schedule": timedelta(minutes=5),
+    },
+    "accounts": {
+        "task": "invenio_accounts.tasks.clean_session_table",
+        "schedule": timedelta(minutes=60),
+    },
+}
+
+###############################################################################
+# Database
+###############################################################################
+#: Database URI including user and password
+SQLALCHEMY_DATABASE_URI = "postgresql+psycopg2://test:psw@localhost/ils"
 
 ###############################################################################
 # JSONSchemas
