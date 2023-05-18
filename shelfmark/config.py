@@ -9,6 +9,10 @@ You overwrite and set instance-specific configuration by either:
 - Environment variables: ``APP_<variable name>``
 """
 from datetime import timedelta
+from invenio_accounts.config import (
+    ACCOUNTS_REST_AUTH_VIEWS as _ACCOUNTS_REST_AUTH_VIEWS,
+)
+from .views import UserInfoResource
 
 
 def _(x):
@@ -73,6 +77,11 @@ SECURITY_EMAIL_SENDER = SUPPORT_EMAIL
 SECURITY_EMAIL_SUBJECT_REGISTER = _("Welcome to Shelfmark!")
 #: Redis session storage URL.
 ACCOUNTS_SESSION_REDIS_URL = "redis://localhost:6379/1"
+
+_ACCOUNTS_REST_AUTH_VIEWS.update(user_info=UserInfoResource)
+ACCOUNTS_REST_AUTH_VIEWS = _ACCOUNTS_REST_AUTH_VIEWS
+
+ACCOUNTS_REST_CONFIRM_EMAIL_ENDPOINT = "/accounts/confirm-email"
 
 ###############################################################################
 # Celery configuration

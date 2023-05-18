@@ -78,6 +78,9 @@ stats = "invenio_stats.cli:stats"
 backoffice_access_action = "shelfmark.permissions:backoffice_access_action"
 backoffice_readonly_access_action = "shelfmark.permissions:backoffice_readonly_access_action"
 
+[project.entry-points."invenio_base.blueprints"]
+logged_out = "shelfmark.views:create_logged_out_blueprint"
+
 [project.entry-points."invenio_config.module"]
 zy_shelfmark = "shelfmark.config"
 
