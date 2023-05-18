@@ -156,3 +156,14 @@ SPA_PATHS = dict(
     profile="/profile",
     search="/search?q=%(querystring)s",
 )
+
+# Use default frontpage
+THEME_FRONTPAGE = False
+
+# Default template to render.
+PAGES_DEFAULT_TEMPLATE = "invenio_pages/default.html"
+# default app theme
+APP_THEME = ["semantic-ui"]
+
+# Site name.
+THEME_SITENAME = _("Shelfmark")
