@@ -90,6 +90,9 @@ zy_shelfmark = "shelfmark.config"
 [project.entry-points."invenio_i18n.translations"]
 messages = "shelfmark"
 
+[project.entry-points."invenio_jsonschemas.schemas"]
+vocabularies = "shelfmark.vocabularies.schemas"
+
 [project.optional-dependencies]
 lorem = [
   "lorem>=0.1.1",
