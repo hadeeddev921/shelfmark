@@ -93,6 +93,9 @@ messages = "shelfmark"
 [project.entry-points."invenio_jsonschemas.schemas"]
 vocabularies = "shelfmark.vocabularies.schemas"
 
+[project.entry-points."invenio_search.mappings"]
+vocabularies = "shelfmark.vocabularies.mappings"
+
 [project.optional-dependencies]
 lorem = [
   "lorem>=0.1.1",
