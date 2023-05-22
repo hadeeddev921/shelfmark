@@ -93,6 +93,12 @@ messages = "shelfmark"
 [project.entry-points."invenio_jsonschemas.schemas"]
 vocabularies = "shelfmark.vocabularies.schemas"
 
+[project.entry-points."invenio_pidstore.fetchers"]
+vocid = "shelfmark.vocabularies.api:vocabulary_pid_fetcher"
+
+[project.entry-points."invenio_pidstore.minters"]
+vocid = "shelfmark.vocabularies.api:vocabulary_pid_minter"
+
 [project.entry-points."invenio_search.mappings"]
 vocabularies = "shelfmark.vocabularies.mappings"
 
