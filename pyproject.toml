@@ -73,6 +73,7 @@ ils = "invenio_app.cli:cli"
 
 [project.entry-points."flask.commands"]
 stats = "invenio_stats.cli:stats"
+vocabulary = "shelfmark.vocabularies.cli:vocabulary"
 
 [project.entry-points."invenio_access.actions"]
 backoffice_access_action = "shelfmark.permissions:backoffice_access_action"
