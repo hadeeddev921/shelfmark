@@ -12,7 +12,16 @@ from datetime import timedelta
 from invenio_accounts.config import (
     ACCOUNTS_REST_AUTH_VIEWS as _ACCOUNTS_REST_AUTH_VIEWS,
 )
+from invenio_records_rest.utils import allow_all, deny_all
+from shelfmark.vocabularies.indexer import VocabularyIndexer
 from .views import UserInfoResource
+from .vocabularies.api import (
+    VOCABULARY_PID_FETCHER,
+    VOCABULARY_PID_MINTER,
+    VOCABULARY_PID_TYPE,
+    Vocabulary,
+)
+from .vocabularies.search import VocabularySearch
 
 
 def _(x):
@@ -156,6 +165,87 @@ SPA_PATHS = dict(
     profile="/profile",
     search="/search?q=%(querystring)s",
 )
+
+RECORDS_REST_MAX_RESULT_WINDOW = 10000
+RECORDS_REST_VOCAB_MAX_RESULT_WINDOW = 500
+PIDSTORE_RECID_FIELD = "pid"
+# name of the URL arg to choose response serializer
+REST_MIMETYPE_QUERY_ARG_NAME = "format"
+
+RECORDS_REST_ENDPOINTS = dict(
+    vocid=dict(
+        pid_type=VOCABULARY_PID_TYPE,
+        pid_minter=VOCABULARY_PID_MINTER,
+        pid_fetcher=VOCABULARY_PID_FETCHER,
+        search_class=VocabularySearch,
+        indexer_class=VocabularyIndexer,
+        record_class=Vocabulary,
+        record_serializers={
+            "application/json": "shelfmark.records.serializers:json_v1_response"
+        },
+        search_serializers={
+            "application/json": "shelfmark.records.serializers:json_v1_search",
+            "text/csv": "shelfmark.records.serializers:csv_v1_search",
+        },
+        search_serializers_aliases={
+            "csv": "text/csv",
+            "json": "application/json",
+        },
+        item_route="/vocabularies/<pid({}):pid_value>".format(VOCABULARY_PID_TYPE),
+        list_route="/vocabularies/",
+        default_media_type="application/json",
+        max_result_window=RECORDS_REST_VOCAB_MAX_RESULT_WINDOW,
+        error_handlers=dict(),
+        read_permission_factory_imp=deny_all,
+        list_permission_factory_imp=allow_all,
+        create_permission_factory_imp=deny_all,
+        update_permission_factory_imp=deny_all,
+        delete_permission_factory_imp=deny_all,
+    ),
+)
+
+# List of available vocabularies
+ILS_VOCABULARIES = [
+    "acq_medium",
+    "acq_order_line_payment_mode",
+    "acq_order_line_purchase_type",
+    "acq_payment_mode",
+    "acq_recipient",
+    "affiliation_identifier_scheme",
+    "alternative_identifier_scheme",
+    "alternative_title_type",
+    "author_identifier_scheme",
+    "author_role",
+    "author_type",
+    "conference_identifier_scheme",
+    "country",
+    "currencies",
+    "doc_req_type",
+    "doc_req_payment_method",
+    "doc_identifiers_materials",
+    "doc_req_medium",
+    "doc_subjects",
+    "eitem_sources",
+    "identifier_scheme",
+    "ill_item_type",
+    "ill_payment_mode",
+    "item_medium",
+    "language",
+    "license",
+    "provider_type",
+    "series_identifier_scheme",
+    "series_url_access_restriction",
+    "tag",
+]
+
+ILS_VOCABULARY_SOURCES = {
+    "json": "shelfmark.vocabularies.sources:json_source",
+    "opendefinition": (
+        "shelfmark.vocabularies.sources:opendefinition_source"
+    ),  # noqa
+}
+
+OPENDEFINITION_JSONRESOLVER_HOST = "inveniosoftware.org"
 
 # Use default frontpage
 THEME_FRONTPAGE = False
