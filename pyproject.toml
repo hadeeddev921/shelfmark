@@ -105,6 +105,7 @@ vocid = "shelfmark.vocabularies.api:vocabulary_pid_minter"
 vocabularies_licenses = "shelfmark.vocabularies.jsonresolvers.licenses"
 
 [project.entry-points."invenio_search.mappings"]
+locations = "shelfmark.locations.mappings"
 vocabularies = "shelfmark.vocabularies.mappings"
 
 [project.optional-dependencies]
