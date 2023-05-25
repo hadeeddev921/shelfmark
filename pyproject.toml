@@ -92,6 +92,7 @@ zy_shelfmark = "shelfmark.config"
 messages = "shelfmark"
 
 [project.entry-points."invenio_jsonschemas.schemas"]
+locations = "shelfmark.locations.schemas"
 vocabularies = "shelfmark.vocabularies.schemas"
 
 [project.entry-points."invenio_pidstore.fetchers"]
