@@ -113,6 +113,7 @@ vocabularies_licenses = "shelfmark.vocabularies.jsonresolvers.licenses"
 [project.entry-points."invenio_search.mappings"]
 internal_locations = "shelfmark.internal_locations.mappings"
 locations = "shelfmark.locations.mappings"
+patrons = "shelfmark.patrons.mappings"
 vocabularies = "shelfmark.vocabularies.mappings"
 
 [project.optional-dependencies]
