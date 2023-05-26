@@ -97,10 +97,12 @@ locations = "shelfmark.locations.schemas"
 vocabularies = "shelfmark.vocabularies.schemas"
 
 [project.entry-points."invenio_pidstore.fetchers"]
+ilocid = "shelfmark.internal_locations.api:internal_location_pid_fetcher"
 locid = "shelfmark.locations.api:location_pid_fetcher"
 vocid = "shelfmark.vocabularies.api:vocabulary_pid_fetcher"
 
 [project.entry-points."invenio_pidstore.minters"]
+ilocid = "shelfmark.internal_locations.api:internal_location_pid_minter"
 locid = "shelfmark.locations.api:location_pid_minter"
 vocid = "shelfmark.vocabularies.api:vocabulary_pid_minter"
 
