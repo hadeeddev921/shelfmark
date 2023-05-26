@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: 2018-2026 CERN.
+# SPDX-License-Identifier: MIT
+
+"""Internal Location schema for marshmallow loader."""
+
+from invenio_records_rest.schemas import RecordMetadataSchemaJSONV1
+from marshmallow import EXCLUDE, fields
+
+
+class InternalLocationSchemaV1(RecordMetadataSchemaJSONV1):
+    """Internal Location schema."""
+
+    class Meta:
+        """Meta attributes for the schema."""
+
+        unknown = EXCLUDE
+
+    location_pid = fields.Str(required=True)
+    name = fields.Str(required=True)
+    legacy_ids = fields.List(fields.Str())
+    notes = fields.Str()
+    physical_location = fields.Str()
+    restricted = fields.Boolean(required=False)
