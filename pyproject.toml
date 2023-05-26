@@ -107,6 +107,7 @@ locid = "shelfmark.locations.api:location_pid_minter"
 vocid = "shelfmark.vocabularies.api:vocabulary_pid_minter"
 
 [project.entry-points."invenio_records.jsonresolver"]
+internal_location = "shelfmark.internal_locations.jsonresolvers.internal_location"
 vocabularies_licenses = "shelfmark.vocabularies.jsonresolvers.licenses"
 
 [project.entry-points."invenio_search.mappings"]
