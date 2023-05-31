@@ -1,0 +1,53 @@
+# SPDX-FileCopyrightText: 2018-2020 CERN.
+# SPDX-License-Identifier: MIT
+
+"""Document configuration callbacks."""
+
+from flask import url_for
+
+
+def build_ils_demo_cover_urls(metadata):
+    """Build working ulrs for demo data."""
+    cover_metadata = metadata.get("cover_metadata", {})
+
+    isbn = (
+        cover_metadata.get("ISBN", "")
+        or cover_metadata.get("isbn", "")
+        or metadata.get("isbn", "")
+        or ""
+    )
+    identifiers = metadata.get("identifiers", [])
+    if not isbn and identifiers:
+        for identifier in identifiers:
+            if identifier.get("scheme") == "ISBN":
+                isbn = identifier.get("value", "")
+                break
+    if isbn:
+        return build_openlibrary_urls(isbn)
+    return build_placeholder_urls()
+
+
+def build_openlibrary_urls(isbn):
+    """Build Open Library urls."""
+    url = "https://covers.openlibrary.org/b/isbn"
+    return {
+        "is_placeholder": False,
+        "small": "{url}/{isbn}-S.jpg".format(url=url, isbn=isbn),
+        "medium": "{url}/{isbn}-M.jpg".format(url=url, isbn=isbn),
+        "large": "{url}/{isbn}-L.jpg".format(url=url, isbn=isbn),
+    }
+
+
+def build_placeholder_urls():
+    """Build urls for default cover placeholders."""
+    image_path = url_for(
+        "shelfmark.static",
+        filename="images/placeholder.png",
+        _external=True,
+    )
+    return {
+        "is_placeholder": True,
+        "small": image_path,
+        "medium": image_path,
+        "large": image_path,
+    }
