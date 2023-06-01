@@ -92,6 +92,7 @@ zy_shelfmark = "shelfmark.config"
 messages = "shelfmark"
 
 [project.entry-points."invenio_jsonschemas.schemas"]
+documents = "shelfmark.documents.schemas"
 internal_locations = "shelfmark.internal_locations.schemas"
 locations = "shelfmark.locations.schemas"
 series = "shelfmark.series.schemas"
