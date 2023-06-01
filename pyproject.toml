@@ -119,6 +119,7 @@ vocabularies_licenses = "shelfmark.vocabularies.jsonresolvers.licenses"
 internal_locations = "shelfmark.internal_locations.mappings"
 locations = "shelfmark.locations.mappings"
 patrons = "shelfmark.patrons.mappings"
+series = "shelfmark.series.mappings"
 vocabularies = "shelfmark.vocabularies.mappings"
 
 [project.optional-dependencies]
