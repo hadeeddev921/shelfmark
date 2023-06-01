@@ -94,6 +94,7 @@ messages = "shelfmark"
 [project.entry-points."invenio_jsonschemas.schemas"]
 internal_locations = "shelfmark.internal_locations.schemas"
 locations = "shelfmark.locations.schemas"
+series = "shelfmark.series.schemas"
 vocabularies = "shelfmark.vocabularies.schemas"
 
 [project.entry-points."invenio_pidstore.fetchers"]
