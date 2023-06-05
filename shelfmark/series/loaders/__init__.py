@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: 2020 CERN.
+# SPDX-License-Identifier: MIT
+
+"""ILS series loaders."""
+
+from shelfmark.records.loaders import ils_marshmallow_loader
+
+from .jsonschemas.series import SeriesSchemaV1
+
+series_loader = ils_marshmallow_loader(SeriesSchemaV1)
