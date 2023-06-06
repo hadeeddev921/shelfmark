@@ -93,6 +93,7 @@ messages = "shelfmark"
 
 [project.entry-points."invenio_jsonschemas.schemas"]
 documents = "shelfmark.documents.schemas"
+eitems = "shelfmark.eitems.schemas"
 internal_locations = "shelfmark.internal_locations.schemas"
 locations = "shelfmark.locations.schemas"
 series = "shelfmark.series.schemas"
@@ -123,6 +124,7 @@ vocabularies_licenses = "shelfmark.vocabularies.jsonresolvers.licenses"
 
 [project.entry-points."invenio_search.mappings"]
 documents = "shelfmark.documents.mappings"
+eitems = "shelfmark.eitems.mappings"
 internal_locations = "shelfmark.internal_locations.mappings"
 locations = "shelfmark.locations.mappings"
 patrons = "shelfmark.patrons.mappings"
