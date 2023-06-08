@@ -85,6 +85,9 @@ shelfmark_theme = "shelfmark.webpack:theme"
 [project.entry-points."invenio_base.blueprints"]
 logged_out = "shelfmark.views:create_logged_out_blueprint"
 
+[project.entry-points."invenio_celery.tasks"]
+ils_indexer_eitems = "shelfmark.eitems.indexer"
+
 [project.entry-points."invenio_config.module"]
 zy_shelfmark = "shelfmark.config"
 
