@@ -120,6 +120,8 @@ serid = "shelfmark.series.api:series_pid_minter"
 vocid = "shelfmark.vocabularies.api:vocabulary_pid_minter"
 
 [project.entry-points."invenio_records.jsonresolver"]
+eitem_document = "shelfmark.eitems.jsonresolvers.eitem_document"
+eitem_files = "shelfmark.eitems.jsonresolvers.eitem_files"
 internal_location = "shelfmark.internal_locations.jsonresolvers.internal_location"
 series_relations = "shelfmark.series.jsonresolvers.series_relations"
 vocabularies_licenses = "shelfmark.vocabularies.jsonresolvers.licenses"
