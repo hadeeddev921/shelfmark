@@ -125,7 +125,9 @@ vocid = "shelfmark.vocabularies.api:vocabulary_pid_minter"
 
 [project.entry-points."invenio_records.jsonresolver"]
 document_eitem = "shelfmark.documents.jsonresolvers.document_eitem"
+document_item = "shelfmark.documents.jsonresolvers.document_item"
 document_relations = "shelfmark.documents.jsonresolvers.document_relations"
+document_stock = "shelfmark.documents.jsonresolvers.document_stock"
 eitem_document = "shelfmark.eitems.jsonresolvers.eitem_document"
 eitem_files = "shelfmark.eitems.jsonresolvers.eitem_files"
 internal_location = "shelfmark.internal_locations.jsonresolvers.internal_location"
