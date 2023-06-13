@@ -1,0 +1,64 @@
+# SPDX-FileCopyrightText: 2018 CERN.
+# SPDX-License-Identifier: MIT
+
+"""Items schema for marshmallow loader."""
+
+from invenio_records_rest.schemas import RecordMetadataSchemaJSONV1
+from marshmallow import EXCLUDE, Schema, fields, pre_load, validate
+
+from shelfmark.items.api import Item
+from shelfmark.records.loaders.schemas.changed_by import (
+    ChangedBySchema,
+    set_changed_by,
+)
+from marshmallow_utils.context import context_schema
+
+from shelfmark.records.loaders.schemas.identifiers import IdentifierSchema
+from shelfmark.records.loaders.schemas.price import PriceSchema
+
+
+class ISBNSchema(Schema):
+    """ISBN schema."""
+
+    class Meta:
+        """Meta attributes for the schema."""
+
+        unknown = EXCLUDE
+
+    description = fields.Str()
+    value = fields.Str(required=True)
+
+
+class ItemSchemaV1(RecordMetadataSchemaJSONV1):
+    """Item schema."""
+
+    class Meta:
+        """Meta attributes for the schema."""
+
+        unknown = EXCLUDE
+
+    acquisition_pid = fields.Str()
+    barcode = fields.Str()
+    created_by = fields.Nested(ChangedBySchema)
+    circulation_restriction = fields.Str(
+        required=True, validate=validate.OneOf(Item.CIRCULATION_RESTRICTIONS)
+    )
+    description = fields.Str()
+    document_pid = fields.Str(required=True)
+    internal_location_pid = fields.Str(required=True)
+    internal_notes = fields.Str()
+    isbns = fields.List(fields.Nested(ISBNSchema))
+    legacy_id = fields.Str()
+    legacy_library_id = fields.Str()
+    medium = fields.Str(required=True)
+    number_of_pages = fields.Int()
+    price = fields.Nested(PriceSchema)
+    shelf = fields.Str()
+    status = fields.Str(required=True, validate=validate.OneOf(Item.STATUSES))
+    identifiers = fields.List(fields.Nested(IdentifierSchema))
+
+    @pre_load
+    def set_changed_by(self, data, **kwargs):
+        """Automatically set `created_by` and `updated_by`."""
+        record = context_schema.get().get("record")
+        return set_changed_by(data, record)
