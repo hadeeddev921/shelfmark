@@ -87,7 +87,9 @@ logged_out = "shelfmark.views:create_logged_out_blueprint"
 
 [project.entry-points."invenio_celery.tasks"]
 ils_indexer_eitems = "shelfmark.eitems.indexer"
+ils_indexer_intlocs = "shelfmark.internal_locations.indexer"
 ils_indexer_items = "shelfmark.items.indexer"
+ils_indexer_locations = "shelfmark.locations.indexer"
 ils_indexer_series = "shelfmark.series.indexer"
 
 [project.entry-points."invenio_config.module"]
