@@ -433,6 +433,55 @@ RECORDS_REST_ENDPOINTS = dict(
     ),
 )
 
+# RECORDS REST sort options
+# =========================
+RECORDS_REST_SORT_OPTIONS = dict(
+    eitems=dict(  # ItemSearch.Meta.index
+        created=dict(fields=["_created"], title="Recently added", order=1),
+        bestmatch=dict(
+            fields=["-_score"],
+            title="Best match",
+            order=2,
+        ),
+        title=dict(
+            fields=["document.title.keyword"],
+            title="Title",
+            order=3,
+        ),
+    ),
+    items=dict(  # ItemSearch.Meta.index
+        created=dict(fields=["_created"], title="Recently added", order=1),
+        bestmatch=dict(
+            fields=["-_score"],
+            title="Best match",
+            order=2,
+        ),
+        title=dict(
+            fields=["document.title.keyword"],
+            title="Title",
+            order=3,
+        ),
+    ),
+    series=dict(  # SeriesSearch.Meta.index
+        created=dict(fields=["_created"], title="Recently added", order=1),
+        bestmatch=dict(
+            fields=["-_score"],
+            title="Best match",
+            order=2,
+        ),
+        title=dict(
+            fields=["title.keyword"],
+            title="Title",
+            order=3,
+        ),
+    ),
+)
+
+# RECORDS REST facets
+# =========================
+#: Number of records to fetch by default
+RECORDS_REST_DEFAULT_RESULTS_SIZE = 15
+
 # List of available vocabularies
 ILS_VOCABULARIES = [
     "acq_medium",
