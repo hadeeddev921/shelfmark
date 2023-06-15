@@ -13,7 +13,24 @@ from invenio_accounts.config import (
     ACCOUNTS_REST_AUTH_VIEWS as _ACCOUNTS_REST_AUTH_VIEWS,
 )
 from invenio_records_rest.utils import allow_all, deny_all
+from shelfmark.eitems.indexer import EItemIndexer
+from shelfmark.items.indexer import ItemIndexer
+from shelfmark.literature.api import (
+    LITERATURE_PID_FETCHER,
+    LITERATURE_PID_MINTER,
+    LITERATURE_PID_TYPE,
+)
+from shelfmark.literature.search import LiteratureSearch
+from shelfmark.series.indexer import SeriesIndexer
 from shelfmark.vocabularies.indexer import VocabularyIndexer
+from .eitems.api import EITEM_PID_FETCHER, EITEM_PID_MINTER, EITEM_PID_TYPE, EItem
+from .eitems.search import EItemSearch
+from .items.api import ITEM_PID_FETCHER, ITEM_PID_MINTER, ITEM_PID_TYPE, Item
+from .items.search import ItemSearch
+from .permissions import backoffice_permission, backoffice_read_permission
+from .records.permissions import record_read_permission_factory
+from .series.api import SERIES_PID_FETCHER, SERIES_PID_MINTER, SERIES_PID_TYPE, Series
+from .series.search import SeriesSearch
 from .views import UserInfoResource
 from .vocabularies.api import (
     VOCABULARY_PID_FETCHER,
@@ -165,6 +182,9 @@ SPA_PATHS = dict(
     profile="/profile",
     search="/search?q=%(querystring)s",
 )
+_PITMID_CONVERTER = 'pid(pitmid, record_class="shelfmark.items.api:Item")'
+_EITMID_CONVERTER = 'pid(eitmid, record_class="shelfmark.eitems.api:EItem")'
+_SERID_CONVERTER = 'pid(serid, record_class="shelfmark.series.api:Series")'
 
 RECORDS_REST_MAX_RESULT_WINDOW = 10000
 RECORDS_REST_VOCAB_MAX_RESULT_WINDOW = 500
@@ -173,6 +193,105 @@ PIDSTORE_RECID_FIELD = "pid"
 REST_MIMETYPE_QUERY_ARG_NAME = "format"
 
 RECORDS_REST_ENDPOINTS = dict(
+    pitmid=dict(
+        pid_type=ITEM_PID_TYPE,
+        pid_minter=ITEM_PID_MINTER,
+        pid_fetcher=ITEM_PID_FETCHER,
+        search_class=ItemSearch,
+        record_class=Item,
+        indexer_class=ItemIndexer,
+        record_loaders={
+            "application/json": "shelfmark.items.loaders:item_loader"
+        },
+        record_serializers={
+            "application/json": "shelfmark.items.serializers:json_v1_response"
+        },
+        search_serializers={
+            "application/json": "shelfmark.items.serializers:json_v1_search",
+            "text/csv": "shelfmark.items.serializers:csv_v1_search",
+        },
+        search_serializers_aliases={
+            "csv": "text/csv",
+            "json": "application/json",
+        },
+        list_route="/items/",
+        item_route="/items/<{0}:pid_value>".format(_PITMID_CONVERTER),
+        default_media_type="application/json",
+        max_result_window=RECORDS_REST_MAX_RESULT_WINDOW,
+        error_handlers=dict(),
+        read_permission_factory_imp=backoffice_read_permission,
+        list_permission_factory_imp=backoffice_read_permission,
+        create_permission_factory_imp=backoffice_permission,
+        update_permission_factory_imp=backoffice_permission,
+        delete_permission_factory_imp=backoffice_permission,
+    ),
+    eitmid=dict(
+        pid_type=EITEM_PID_TYPE,
+        pid_minter=EITEM_PID_MINTER,
+        pid_fetcher=EITEM_PID_FETCHER,
+        search_class=EItemSearch,
+        record_class=EItem,
+        indexer_class=EItemIndexer,
+        record_loaders={
+            "application/json": "shelfmark.eitems.loaders:eitem_loader"
+        },
+        record_serializers={
+            "application/json": "shelfmark.records.serializers:json_v1_response"
+        },
+        search_serializers={
+            "application/json": "shelfmark.records.serializers:json_v1_search",
+            "text/csv": "shelfmark.records.serializers:csv_v1_search",
+        },
+        search_serializers_aliases={
+            "csv": "text/csv",
+            "json": "application/json",
+        },
+        list_route="/eitems/",
+        item_route="/eitems/<{0}:pid_value>".format(_EITMID_CONVERTER),
+        default_media_type="application/json",
+        max_result_window=RECORDS_REST_MAX_RESULT_WINDOW,
+        error_handlers=dict(),
+        read_permission_factory_imp=backoffice_read_permission,
+        list_permission_factory_imp=backoffice_read_permission,
+        create_permission_factory_imp=backoffice_permission,
+        update_permission_factory_imp=backoffice_permission,
+        delete_permission_factory_imp=backoffice_permission,
+    ),
+    serid=dict(
+        pid_type=SERIES_PID_TYPE,
+        pid_minter=SERIES_PID_MINTER,
+        pid_fetcher=SERIES_PID_FETCHER,
+        search_class=SeriesSearch,
+        record_class=Series,
+        indexer_class=SeriesIndexer,
+        search_factory_imp="shelfmark.search_permissions:ils_search_factory",  # noqa
+        record_loaders={
+            "application/json": "shelfmark.series.loaders:series_loader"
+        },
+        record_serializers={
+            "application/json": (
+                "shelfmark.literature.serializers:json_v1_response"
+            )
+        },
+        search_serializers={
+            "application/json": "shelfmark.literature.serializers:json_v1_search",
+            "text/csv": "shelfmark.literature.serializers:csv_v1_search",
+        },
+        search_serializers_aliases={
+            "csv": "text/csv",
+            "json": "application/json",
+        },
+        list_route="/series/",
+        item_route="/series/<{0}:pid_value>".format(_SERID_CONVERTER),
+        default_media_type="application/json",
+        max_result_window=RECORDS_REST_MAX_RESULT_WINDOW,
+        error_handlers=dict(),
+        read_permission_factory_imp=record_read_permission_factory,
+        list_permission_factory_imp=allow_all,
+        create_permission_factory_imp=backoffice_permission,
+        update_permission_factory_imp=backoffice_permission,
+        delete_permission_factory_imp=backoffice_permission,
+    ),
     vocid=dict(
         pid_type=VOCABULARY_PID_TYPE,
         pid_minter=VOCABULARY_PID_MINTER,
@@ -198,6 +317,38 @@ RECORDS_REST_ENDPOINTS = dict(
         error_handlers=dict(),
         read_permission_factory_imp=deny_all,
         list_permission_factory_imp=allow_all,
+        create_permission_factory_imp=deny_all,
+        update_permission_factory_imp=deny_all,
+        delete_permission_factory_imp=deny_all,
+    ),
+    litid=dict(
+        # Literature is a search endpoint that allows the user to search in
+        # both the documents and series index.
+        pid_type=LITERATURE_PID_TYPE,
+        pid_minter=LITERATURE_PID_MINTER,
+        pid_fetcher=LITERATURE_PID_FETCHER,
+        search_class=LiteratureSearch,
+        search_factory_imp="shelfmark.literature.search:search_factory_literature",  # noqa
+        record_serializers={
+            "application/json": (
+                "shelfmark.literature.serializers:json_v1_response"
+            )
+        },
+        search_serializers={
+            "application/json": "shelfmark.literature.serializers:json_v1_search",
+            "text/csv": "shelfmark.literature.serializers:csv_v1_search",
+        },
+        search_serializers_aliases={
+            "csv": "text/csv",
+            "json": "application/json",
+        },
+        item_route="/literature/<pid({}):pid_value>".format(LITERATURE_PID_TYPE),
+        list_route="/literature/",
+        default_media_type="application/json",
+        max_result_window=RECORDS_REST_MAX_RESULT_WINDOW,
+        error_handlers=dict(),
+        read_permission_factory_imp=deny_all,
+        list_permission_factory_imp=allow_all,  # auth via search filter
         create_permission_factory_imp=deny_all,
         update_permission_factory_imp=deny_all,
         delete_permission_factory_imp=deny_all,
