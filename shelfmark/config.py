@@ -14,6 +14,7 @@ from invenio_accounts.config import (
 )
 from invenio_records_rest.utils import allow_all, deny_all
 from shelfmark.eitems.indexer import EItemIndexer
+from shelfmark.internal_locations.indexer import InternalLocationIndexer
 from shelfmark.items.indexer import ItemIndexer
 from shelfmark.literature.api import (
     LITERATURE_PID_FETCHER,
@@ -21,12 +22,27 @@ from shelfmark.literature.api import (
     LITERATURE_PID_TYPE,
 )
 from shelfmark.literature.search import LiteratureSearch
+from shelfmark.locations.indexer import LocationIndexer
 from shelfmark.series.indexer import SeriesIndexer
 from shelfmark.vocabularies.indexer import VocabularyIndexer
 from .eitems.api import EITEM_PID_FETCHER, EITEM_PID_MINTER, EITEM_PID_TYPE, EItem
 from .eitems.search import EItemSearch
+from .internal_locations.api import (
+    INTERNAL_LOCATION_PID_FETCHER,
+    INTERNAL_LOCATION_PID_MINTER,
+    INTERNAL_LOCATION_PID_TYPE,
+    InternalLocation,
+)
+from .internal_locations.search import InternalLocationSearch
 from .items.api import ITEM_PID_FETCHER, ITEM_PID_MINTER, ITEM_PID_TYPE, Item
 from .items.search import ItemSearch
+from .locations.api import (
+    LOCATION_PID_FETCHER,
+    LOCATION_PID_MINTER,
+    LOCATION_PID_TYPE,
+    Location,
+)
+from .locations.search import LocationSearch
 from .permissions import backoffice_permission, backoffice_read_permission
 from .records.permissions import record_read_permission_factory
 from .series.api import SERIES_PID_FETCHER, SERIES_PID_MINTER, SERIES_PID_TYPE, Series
@@ -184,6 +200,8 @@ SPA_PATHS = dict(
 )
 _PITMID_CONVERTER = 'pid(pitmid, record_class="shelfmark.items.api:Item")'
 _EITMID_CONVERTER = 'pid(eitmid, record_class="shelfmark.eitems.api:EItem")'
+_LOCID_CONVERTER = 'pid(locid, record_class="shelfmark.locations.api:Location")'
+_ILOCID_CONVERTER = 'pid(ilocid, record_class="shelfmark.internal_locations.api:InternalLocation")'  # noqa
 _SERID_CONVERTER = 'pid(serid, record_class="shelfmark.series.api:Series")'
 
 RECORDS_REST_MAX_RESULT_WINDOW = 10000
@@ -257,6 +275,36 @@ RECORDS_REST_ENDPOINTS = dict(
         update_permission_factory_imp=backoffice_permission,
         delete_permission_factory_imp=backoffice_permission,
     ),
+    locid=dict(
+        pid_type=LOCATION_PID_TYPE,
+        pid_minter=LOCATION_PID_MINTER,
+        pid_fetcher=LOCATION_PID_FETCHER,
+        search_class=LocationSearch,
+        record_class=Location,
+        indexer_class=LocationIndexer,
+        record_loaders={
+            "application/json": "shelfmark.locations.loaders:location_loader"
+        },
+        record_serializers={
+            "application/json": "shelfmark.records.serializers:json_v1_response"
+        },
+        search_serializers={
+            "application/json": "shelfmark.records.serializers:json_v1_search"
+        },
+        search_serializers_aliases={
+            "json": "application/json",
+        },
+        list_route="/locations/",
+        item_route="/locations/<{0}:pid_value>".format(_LOCID_CONVERTER),
+        default_media_type="application/json",
+        max_result_window=RECORDS_REST_MAX_RESULT_WINDOW,
+        error_handlers=dict(),
+        read_permission_factory_imp=record_read_permission_factory,
+        list_permission_factory_imp=allow_all,
+        create_permission_factory_imp=backoffice_permission,
+        update_permission_factory_imp=backoffice_permission,
+        delete_permission_factory_imp=backoffice_permission,
+    ),
     serid=dict(
         pid_type=SERIES_PID_TYPE,
         pid_minter=SERIES_PID_MINTER,
@@ -288,6 +336,36 @@ RECORDS_REST_ENDPOINTS = dict(
         error_handlers=dict(),
         read_permission_factory_imp=record_read_permission_factory,
         list_permission_factory_imp=allow_all,
+        create_permission_factory_imp=backoffice_permission,
+        update_permission_factory_imp=backoffice_permission,
+        delete_permission_factory_imp=backoffice_permission,
+    ),
+    ilocid=dict(
+        pid_type=INTERNAL_LOCATION_PID_TYPE,
+        pid_minter=INTERNAL_LOCATION_PID_MINTER,
+        pid_fetcher=INTERNAL_LOCATION_PID_FETCHER,
+        search_class=InternalLocationSearch,
+        record_class=InternalLocation,
+        indexer_class=InternalLocationIndexer,
+        record_loaders={
+            "application/json": "shelfmark.internal_locations.loaders:internal_location_loader"  # noqa
+        },
+        record_serializers={
+            "application/json": "shelfmark.records.serializers:json_v1_response"
+        },
+        search_serializers={
+            "application/json": "invenio_records_rest.serializers:json_v1_search"
+        },
+        search_serializers_aliases={
+            "json": "application/json",
+        },
+        list_route="/internal-locations/",
+        item_route="/internal-locations/<{0}:pid_value>".format(_ILOCID_CONVERTER),
+        default_media_type="application/json",
+        max_result_window=RECORDS_REST_MAX_RESULT_WINDOW,
+        error_handlers=dict(),
+        read_permission_factory_imp=backoffice_read_permission,
+        list_permission_factory_imp=backoffice_read_permission,
         create_permission_factory_imp=backoffice_permission,
         update_permission_factory_imp=backoffice_permission,
         delete_permission_factory_imp=backoffice_permission,
