@@ -136,6 +136,7 @@ eitem_files = "shelfmark.eitems.jsonresolvers.eitem_files"
 internal_location = "shelfmark.internal_locations.jsonresolvers.internal_location"
 item_document = "shelfmark.items.jsonresolvers.item_document"
 item_internal_location = "shelfmark.items.jsonresolvers.item_internal_location"
+item_loan = "shelfmark.items.jsonresolvers.item_loan"
 series_relations = "shelfmark.series.jsonresolvers.series_relations"
 vocabularies_licenses = "shelfmark.vocabularies.jsonresolvers.licenses"
 
