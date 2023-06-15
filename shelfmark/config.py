@@ -12,6 +12,7 @@ from datetime import timedelta
 from invenio_accounts.config import (
     ACCOUNTS_REST_AUTH_VIEWS as _ACCOUNTS_REST_AUTH_VIEWS,
 )
+from invenio_records_rest.facets import terms_filter
 from invenio_records_rest.utils import allow_all, deny_all
 from shelfmark.eitems.indexer import EItemIndexer
 from shelfmark.internal_locations.indexer import InternalLocationIndexer
@@ -27,6 +28,7 @@ from shelfmark.series.indexer import SeriesIndexer
 from shelfmark.vocabularies.indexer import VocabularyIndexer
 from .eitems.api import EITEM_PID_FETCHER, EITEM_PID_MINTER, EITEM_PID_TYPE, EItem
 from .eitems.search import EItemSearch
+from .facets import default_value_when_missing_filter, exists_value_filter
 from .internal_locations.api import (
     INTERNAL_LOCATION_PID_FETCHER,
     INTERNAL_LOCATION_PID_MINTER,
@@ -481,6 +483,72 @@ RECORDS_REST_SORT_OPTIONS = dict(
 # =========================
 #: Number of records to fetch by default
 RECORDS_REST_DEFAULT_RESULTS_SIZE = 15
+
+#: Number of tags to display in the DocumentsSearch facet
+FACET_TAG_LIMIT = 5
+
+RECORDS_REST_FACETS = dict(
+    items=dict(  # ItemSearch.Meta.index
+        aggs=dict(
+            status=dict(terms=dict(field="status")),
+            medium=dict(terms=dict(field="medium")),
+            circulation=dict(
+                terms=dict(field="circulation.state", missing="NOT_ON_LOAN")
+            ),
+            restrictions=dict(terms=dict(field="circulation_restriction")),
+            location=dict(terms=dict(field="internal_location.location.name")),
+            internal_location=dict(terms=dict(field="internal_location.name")),
+            document_type=dict(terms=dict(field="document.document_type")),
+        ),
+        filters=dict(),
+        post_filters=dict(
+            circulation=default_value_when_missing_filter(
+                "circulation.state", "NOT_ON_LOAN"
+            ),
+            status=terms_filter("status"),
+            medium=terms_filter("medium"),
+            restrictions=terms_filter("circulation_restriction"),
+            location=terms_filter("internal_location.location.name"),
+            internal_location=terms_filter("internal_location.name"),
+            document_type=terms_filter("document.document_type"),
+        ),
+    ),
+    eitems=dict(
+        aggs=dict(
+            access=dict(terms=dict(field="open_access")),
+            eitem_type=dict(terms=dict(field="eitem_type")),
+            has_files=dict(
+                filters=dict(
+                    filters=dict(
+                        has_files=dict(exists=dict(field="files.file_id")),
+                        no_files=dict(
+                            bool=dict(must_not=dict(exists=dict(field="files.file_id")))
+                        ),
+                    )
+                )
+            ),
+        ),
+        post_filters=dict(
+            eitem_type=terms_filter("eitem_type"),
+            access=terms_filter("open_access"),
+            has_files=exists_value_filter("files.file_id", filter_value="has_files"),
+        ),
+    ),
+    series=dict(  # SeriesSearch.Meta.index
+        aggs=dict(
+            moi=dict(terms=dict(field="mode_of_issuance")),
+            language=dict(terms=dict(field="languages")),
+            relation=dict(terms=dict(field="relation_types")),
+            sertype=dict(terms=dict(field="series_type")),
+        ),
+        post_filters=dict(
+            moi=terms_filter("mode_of_issuance"),
+            language=terms_filter("languages"),
+            relation=terms_filter("relation_types"),
+            sertype=terms_filter("series_type"),
+        ),
+    ),
+)
 
 # List of available vocabularies
 ILS_VOCABULARIES = [
