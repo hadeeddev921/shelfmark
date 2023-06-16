@@ -1,0 +1,18 @@
+{#-
+  SPDX-FileCopyrightText: 2021 CERN.
+  SPDX-License-Identifier: MIT
+#}
+{% block footer_plain %}
+You can see your ongoing and past loans in your profile page <{{ spa_routes.HOST }}{{ spa_routes.PATHS["profile"] }}>.
+
+Kind regards,
+Shelfmark
+{% endblock %}
+
+{% block footer_html %}
+<br/><br/>
+You can see your ongoing and past loans in your <a href="{{ spa_routes.HOST }}{{ spa_routes.PATHS['profile'] }}">profile page</a>.
+<br/><br/>
+Kind regards,<br/>
+Shelfmark<br/>
+{% endblock %}
