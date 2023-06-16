@@ -92,6 +92,7 @@ ils_indexer_items = "shelfmark.items.indexer"
 ils_indexer_locations = "shelfmark.locations.indexer"
 ils_indexer_series = "shelfmark.series.indexer"
 ils_notifications = "shelfmark.notifications.tasks"
+ils_notifications_backends = "shelfmark.notifications.backends.mail"
 
 [project.entry-points."invenio_config.module"]
 zy_shelfmark = "shelfmark.config"
