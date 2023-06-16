@@ -95,6 +95,9 @@ ils_indexer_series = "shelfmark.series.indexer"
 [project.entry-points."invenio_config.module"]
 zy_shelfmark = "shelfmark.config"
 
+[project.entry-points."invenio_db.models"]
+ils_notifications_logs = "shelfmark.notifications.models"
+
 [project.entry-points."invenio_i18n.translations"]
 messages = "shelfmark"
 
