@@ -9,6 +9,8 @@ You overwrite and set instance-specific configuration by either:
 - Environment variables: ``APP_<variable name>``
 """
 from datetime import timedelta
+
+from celery.schedules import crontab
 from invenio_accounts.config import (
     ACCOUNTS_REST_AUTH_VIEWS as _ACCOUNTS_REST_AUTH_VIEWS,
 )
@@ -144,6 +146,14 @@ CELERY_BEAT_SCHEDULE = {
     "accounts": {
         "task": "invenio_accounts.tasks.clean_session_table",
         "schedule": timedelta(minutes=60),
+    },
+    "send_expiring_loans_loans": {
+        "task": "shelfmark.circulation.notifications.tasks.send_expiring_loans_notification_reminder",  # noqa
+        "schedule": crontab(minute=0, hour=0),  # every day, midnight
+    },
+    "send_overdue_loan_reminders": {
+        "task": "shelfmark.circulation.notifications.tasks.send_overdue_loans_notification_reminder",  # noqa
+        "schedule": crontab(minute=0, hour=2),  # every day, 2am
     },
 }
 
