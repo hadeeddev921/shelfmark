@@ -151,6 +151,12 @@ CELERY_BEAT_SCHEDULE = {
         "task": "shelfmark.circulation.notifications.tasks.send_expiring_loans_notification_reminder",  # noqa
         "schedule": crontab(minute=0, hour=0),  # every day, midnight
     },
+    "cancel_expired_loan": {
+        "task": (
+            "shelfmark.circulation.tasks.cancel_expired_loan_requests"
+        ),  # noqa
+        "schedule": crontab(minute=0, hour=1),  # every day, 1am
+    },
     "send_overdue_loan_reminders": {
         "task": "shelfmark.circulation.notifications.tasks.send_overdue_loans_notification_reminder",  # noqa
         "schedule": crontab(minute=0, hour=2),  # every day, 2am
