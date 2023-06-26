@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: 2019-2021 CERN.
+# SPDX-License-Identifier: MIT
+
+"""Invenio App Provider loaders."""
+
+from shelfmark.records.loaders import ils_marshmallow_loader
+
+from .jsonschemas.provider import ProviderSchemaV1
+
+provider_loader = ils_marshmallow_loader(ProviderSchemaV1)
