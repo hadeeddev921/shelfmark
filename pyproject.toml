@@ -167,6 +167,7 @@ internal_locations = "shelfmark.internal_locations.mappings"
 items = "shelfmark.items.mappings"
 locations = "shelfmark.locations.mappings"
 patrons = "shelfmark.patrons.mappings"
+providers = "shelfmark.providers.mappings"
 series = "shelfmark.series.mappings"
 vocabularies = "shelfmark.vocabularies.mappings"
 
