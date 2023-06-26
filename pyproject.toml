@@ -116,6 +116,7 @@ eitems = "shelfmark.eitems.schemas"
 internal_locations = "shelfmark.internal_locations.schemas"
 items = "shelfmark.items.schemas"
 locations = "shelfmark.locations.schemas"
+providers = "shelfmark.providers.schemas"
 series = "shelfmark.series.schemas"
 vocabularies = "shelfmark.vocabularies.schemas"
 
