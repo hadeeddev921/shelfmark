@@ -111,6 +111,7 @@ ils_notifications_logs = "shelfmark.notifications.models"
 messages = "shelfmark"
 
 [project.entry-points."invenio_jsonschemas.schemas"]
+acquisition = "shelfmark.acquisition.schemas"
 documents = "shelfmark.documents.schemas"
 eitems = "shelfmark.eitems.schemas"
 internal_locations = "shelfmark.internal_locations.schemas"
