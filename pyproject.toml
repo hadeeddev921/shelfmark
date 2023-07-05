@@ -122,6 +122,7 @@ series = "shelfmark.series.schemas"
 vocabularies = "shelfmark.vocabularies.schemas"
 
 [project.entry-points."invenio_pidstore.fetchers"]
+acqoid = "shelfmark.acquisition.api:order_pid_fetcher"
 docid = "shelfmark.documents.api:document_pid_fetcher"
 eitmid = "shelfmark.eitems.api:eitem_pid_fetcher"
 illbid = "shelfmark.ill.api:borrowing_request_pid_fetcher"
@@ -136,6 +137,7 @@ serid = "shelfmark.series.api:series_pid_fetcher"
 vocid = "shelfmark.vocabularies.api:vocabulary_pid_fetcher"
 
 [project.entry-points."invenio_pidstore.minters"]
+acqoid = "shelfmark.acquisition.api:order_pid_minter"
 docid = "shelfmark.documents.api:document_pid_minter"
 eitmid = "shelfmark.eitems.api:eitem_pid_minter"
 illbid = "shelfmark.ill.api:borrowing_request_pid_minter"
