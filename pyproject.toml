@@ -164,6 +164,7 @@ series_relations = "shelfmark.series.jsonresolvers.series_relations"
 vocabularies_licenses = "shelfmark.vocabularies.jsonresolvers.licenses"
 
 [project.entry-points."invenio_search.mappings"]
+acq_orders = "shelfmark.acquisition.mappings"
 documents = "shelfmark.documents.mappings"
 eitems = "shelfmark.eitems.mappings"
 internal_locations = "shelfmark.internal_locations.mappings"

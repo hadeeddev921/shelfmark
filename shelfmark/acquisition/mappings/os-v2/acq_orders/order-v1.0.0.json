@@ -1,0 +1,454 @@
+{
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "email": {
+          "type": "custom",
+          "tokenizer": "uax_url_email"
+        },
+        "accent_folding": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "asciifolding"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "date_detection": false,
+    "numeric_detection": false,
+    "properties": {
+      "$schema": {
+        "type": "keyword"
+      },
+      "_created": {
+        "type": "date"
+      },
+      "_updated": {
+        "type": "date"
+      },
+      "cancel_reason": {
+        "type": "text"
+      },
+      "created_by": {
+        "properties": {
+          "type": {
+            "type": "keyword"
+          },
+          "value": {
+            "type": "keyword"
+          }
+        },
+        "type": "object"
+      },
+      "expected_delivery_date": {
+        "type": "date"
+      },
+      "funds": {
+        "type": "text"
+      },
+      "grand_total": {
+        "properties": {
+          "currency": {
+            "type": "keyword"
+          },
+          "value": {
+            "type": "float"
+          }
+        },
+        "type": "object"
+      },
+      "grand_total_main_currency": {
+        "properties": {
+          "currency": {
+            "type": "keyword"
+          },
+          "value": {
+            "type": "float"
+          }
+        },
+        "type": "object"
+      },
+      "legacy_id": {
+        "type": "keyword"
+      },
+      "notes": {
+        "type": "text",
+        "analyzer": "accent_folding"
+      },
+      "order_date": {
+        "type": "date"
+      },
+      "order_lines": {
+        "properties": {
+          "budget_code": {
+            "type": "keyword"
+          },
+          "copies_ordered": {
+            "type": "integer"
+          },
+          "copies_received": {
+            "type": "integer"
+          },
+          "document": {
+            "properties": {
+              "authors": {
+                "type": "text",
+                "analyzer": "accent_folding"
+              },
+              "cover_metadata": {
+                "properties": {},
+                "type": "object"
+              },
+              "edition": {
+                "type": "text",
+                "analyzer": "accent_folding"
+              },
+              "pid": {
+                "type": "keyword"
+              },
+              "publication_year": {
+                "type": "keyword"
+              },
+              "title": {
+                "type": "text",
+                "analyzer": "accent_folding",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword"
+                  }
+                }
+              },
+              "alternative_titles": {
+                "properties": {
+                  "language": {
+                    "type": "keyword"
+                  },
+                  "type": {
+                    "type": "keyword"
+                  },
+                  "value": {
+                    "type": "text",
+                    "analyzer": "accent_folding"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "type": "object"
+          },
+          "document_pid": {
+            "type": "keyword"
+          },
+          "inter_departmental_transaction_id": {
+            "type": "keyword"
+          },
+          "is_donation": {
+            "type": "boolean"
+          },
+          "is_patron_suggestion": {
+            "type": "boolean"
+          },
+          "medium": {
+            "type": "keyword"
+          },
+          "notes": {
+            "type": "text",
+            "analyzer": "accent_folding"
+          },
+          "patron": {
+            "properties": {
+              "email": {
+                "type": "text",
+                "analyzer": "email"
+              },
+              "id": {
+                "type": "keyword"
+              },
+              "name": {
+                "type": "text",
+                "analyzer": "accent_folding",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword"
+                  }
+                }
+              }
+            },
+            "type": "object"
+          },
+          "patron_pid": {
+            "type": "keyword"
+          },
+          "payment_mode": {
+            "type": "keyword"
+          },
+          "purchase_type": {
+            "type": "keyword"
+          },
+          "recipient": {
+            "type": "keyword"
+          },
+          "total_price": {
+            "properties": {
+              "currency": {
+                "type": "keyword"
+              },
+              "value": {
+                "type": "float"
+              }
+            },
+            "type": "object"
+          },
+          "unit_price": {
+            "properties": {
+              "currency": {
+                "type": "keyword"
+              },
+              "value": {
+                "type": "float"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "payment": {
+        "properties": {
+          "debit_cost": {
+            "properties": {
+              "currency": {
+                "type": "keyword"
+              },
+              "value": {
+                "type": "float"
+              }
+            },
+            "type": "object"
+          },
+          "debit_cost_main_currency": {
+            "properties": {
+              "currency": {
+                "type": "keyword"
+              },
+              "value": {
+                "type": "float"
+              }
+            },
+            "type": "object"
+          },
+          "debit_date": {
+            "type": "date"
+          },
+          "debit_note": {
+            "type": "text"
+          },
+          "internal_purchase_requisition_id": {
+            "type": "keyword"
+          },
+          "mode": {
+            "type": "keyword"
+          }
+        },
+        "type": "object"
+      },
+      "pid": {
+        "type": "keyword"
+      },
+      "received_date": {
+        "type": "date"
+      },
+      "resolved_order_lines": {
+        "properties": {
+          "budget_code": {
+            "type": "keyword"
+          },
+          "copies_ordered": {
+            "type": "integer"
+          },
+          "copies_received": {
+            "type": "integer"
+          },
+          "document": {
+            "properties": {
+              "authors": {
+                "type": "text",
+                "analyzer": "accent_folding"
+              },
+              "cover_metadata": {
+                "type": "object"
+              },
+              "edition": {
+                "type": "text",
+                "analyzer": "accent_folding"
+              },
+              "pid": {
+                "type": "keyword"
+              },
+              "publication_year": {
+                "type": "keyword"
+              },
+              "title": {
+                "type": "text",
+                "analyzer": "accent_folding",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword"
+                  }
+                }
+              },
+              "alternative_titles": {
+                "properties": {
+                  "language": {
+                    "type": "keyword"
+                  },
+                  "type": {
+                    "type": "keyword"
+                  },
+                  "value": {
+                    "type": "text",
+                    "analyzer": "accent_folding"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "type": "object"
+          },
+          "document_pid": {
+            "type": "keyword"
+          },
+          "inter_departmental_transaction_id": {
+            "type": "keyword"
+          },
+          "is_donation": {
+            "type": "boolean"
+          },
+          "is_patron_suggestion": {
+            "type": "boolean"
+          },
+          "medium": {
+            "type": "keyword"
+          },
+          "notes": {
+            "type": "text",
+            "analyzer": "accent_folding"
+          },
+          "patron": {
+            "properties": {
+              "email": {
+                "type": "text",
+                "analyzer": "email"
+              },
+              "id": {
+                "type": "keyword"
+              },
+              "location_pid": {
+                "type": "keyword"
+              },
+              "name": {
+                "type": "text",
+                "analyzer": "accent_folding",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword"
+                  }
+                }
+              }
+            },
+            "type": "object"
+          },
+          "patron_pid": {
+            "type": "keyword"
+          },
+          "payment_mode": {
+            "type": "keyword"
+          },
+          "purchase_type": {
+            "type": "keyword"
+          },
+          "recipient": {
+            "type": "keyword"
+          },
+          "total_price": {
+            "properties": {
+              "currency": {
+                "type": "keyword"
+              },
+              "value": {
+                "type": "float"
+              }
+            },
+            "type": "object"
+          },
+          "unit_price": {
+            "properties": {
+              "currency": {
+                "type": "keyword"
+              },
+              "value": {
+                "type": "float"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "status": {
+        "type": "keyword"
+      },
+      "updated_by": {
+        "properties": {
+          "type": {
+            "type": "keyword"
+          },
+          "value": {
+            "type": "keyword"
+          }
+        },
+        "type": "object"
+      },
+      "provider": {
+        "properties": {
+          "address": {
+            "type": "text"
+          },
+          "email": {
+            "type": "text",
+            "analyzer": "email"
+          },
+          "name": {
+            "fields": {
+              "keyword": {
+                "type": "keyword"
+              }
+            },
+            "type": "text",
+            "analyzer": "accent_folding"
+          },
+          "notes": {
+            "type": "text",
+            "analyzer": "accent_folding"
+          },
+          "phone": {
+            "type": "keyword"
+          },
+          "pid": {
+            "type": "keyword"
+          }
+        },
+        "type": "object"
+      },
+      "provider_pid": {
+        "type": "keyword"
+      },
+      "stats": {
+        "type": "object",
+        "dynamic": true,
+        "enabled": true
+      }
+    }
+  }
+}
