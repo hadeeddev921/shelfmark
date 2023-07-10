@@ -114,6 +114,7 @@ messages = "shelfmark"
 
 [project.entry-points."invenio_jsonschemas.schemas"]
 acquisition = "shelfmark.acquisition.schemas"
+document_requests = "shelfmark.document_requests.schemas"
 documents = "shelfmark.documents.schemas"
 eitems = "shelfmark.eitems.schemas"
 ill = "shelfmark.ill.schemas"
