@@ -28,6 +28,7 @@ from shelfmark.literature.search import LiteratureSearch
 from shelfmark.locations.indexer import LocationIndexer
 from shelfmark.series.indexer import SeriesIndexer
 from shelfmark.vocabularies.indexer import VocabularyIndexer
+from .document_requests.notifications.api import document_request_notification_filter
 from .eitems.api import EITEM_PID_FETCHER, EITEM_PID_MINTER, EITEM_PID_TYPE, EItem
 from .eitems.search import EItemSearch
 from .facets import default_value_when_missing_filter, exists_value_filter
@@ -90,6 +91,27 @@ RATELIMIT_GUEST_USER = "1000 per hour;100 per minute"
 BABEL_DEFAULT_LANGUAGE = "en"
 #: Default time zone
 BABEL_DEFAULT_TIMEZONE = "Europe/Zurich"
+
+###############################################################################
+# Notifications configuration
+###############################################################################
+# The backends to use when sending notifications.
+ILS_NOTIFICATIONS_BACKENDS_BUILDER = (
+    "shelfmark.notifications.backends:notifications_backend_builder"  # noqa
+)
+# Notification message creator
+ILS_NOTIFICATIONS_MSG_BUILDER = (
+    "shelfmark.notifications.messages:notification_msg_builder"  # noqa
+)
+# Override default global common templates
+ILS_NOTIFICATIONS_TEMPLATES = {"footer": "footer.html"}
+# DOCUMENT REQUESTS
+# Notification message creator for document requests notifications
+ILS_NOTIFICATIONS_MSG_BUILDER_DOCUMENT_REQUEST = "shelfmark.document_requests.notifications.messages:notification_document_request_msg_builder"  # noqa
+# Override default document requests templates
+ILS_NOTIFICATIONS_TEMPLATES_DOCUMENT_REQUEST = {}
+# Function to select and filter which notifications should be sent
+ILS_NOTIFICATIONS_FILTER_DOCUMENT_REQUEST = document_request_notification_filter
 ###############################################################################
 # Email configuration
 ###############################################################################
