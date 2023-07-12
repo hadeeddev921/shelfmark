@@ -16,6 +16,8 @@ from invenio_accounts.config import (
 )
 from invenio_records_rest.facets import terms_filter
 from invenio_records_rest.utils import allow_all, deny_all
+
+from shelfmark.document_requests.indexer import DocumentRequestIndexer
 from shelfmark.eitems.indexer import EItemIndexer
 from shelfmark.internal_locations.indexer import InternalLocationIndexer
 from shelfmark.items.indexer import ItemIndexer
@@ -28,7 +30,15 @@ from shelfmark.literature.search import LiteratureSearch
 from shelfmark.locations.indexer import LocationIndexer
 from shelfmark.series.indexer import SeriesIndexer
 from shelfmark.vocabularies.indexer import VocabularyIndexer
+
+from .document_requests.api import (
+    DOCUMENT_REQUEST_PID_FETCHER,
+    DOCUMENT_REQUEST_PID_MINTER,
+    DOCUMENT_REQUEST_PID_TYPE,
+    DocumentRequest,
+)
 from .document_requests.notifications.api import document_request_notification_filter
+from .document_requests.search import DocumentRequestSearch
 from .eitems.api import EITEM_PID_FETCHER, EITEM_PID_MINTER, EITEM_PID_TYPE, EItem
 from .eitems.search import EItemSearch
 from .facets import default_value_when_missing_filter, exists_value_filter
@@ -48,7 +58,12 @@ from .locations.api import (
     Location,
 )
 from .locations.search import LocationSearch
-from .permissions import backoffice_permission, backoffice_read_permission
+from .permissions import (
+    PatronOwnerReadPermission,
+    authenticated_user_permission,
+    backoffice_permission,
+    backoffice_read_permission,
+)
 from .records.permissions import record_read_permission_factory
 from .series.api import SERIES_PID_FETCHER, SERIES_PID_MINTER, SERIES_PID_TYPE, Series
 from .series.search import SeriesSearch
@@ -242,6 +257,7 @@ _PITMID_CONVERTER = 'pid(pitmid, record_class="shelfmark.items.api:Item")'
 _EITMID_CONVERTER = 'pid(eitmid, record_class="shelfmark.eitems.api:EItem")'
 _LOCID_CONVERTER = 'pid(locid, record_class="shelfmark.locations.api:Location")'
 _ILOCID_CONVERTER = 'pid(ilocid, record_class="shelfmark.internal_locations.api:InternalLocation")'  # noqa
+_DREQID_CONVERTER = 'pid(dreqid, record_class="shelfmark.document_requests.api:DocumentRequest")'  # noqa
 _SERID_CONVERTER = 'pid(serid, record_class="shelfmark.series.api:Series")'
 
 RECORDS_REST_MAX_RESULT_WINDOW = 10000
@@ -410,6 +426,40 @@ RECORDS_REST_ENDPOINTS = dict(
         update_permission_factory_imp=backoffice_permission,
         delete_permission_factory_imp=backoffice_permission,
     ),
+    dreqid=dict(
+        pid_type=DOCUMENT_REQUEST_PID_TYPE,
+        pid_minter=DOCUMENT_REQUEST_PID_MINTER,
+        pid_fetcher=DOCUMENT_REQUEST_PID_FETCHER,
+        search_class=DocumentRequestSearch,
+        record_class=DocumentRequest,
+        indexer_class=DocumentRequestIndexer,
+        search_factory_imp="shelfmark.search_permissions:search_factory_filter_by_patron",  # noqa
+        record_loaders={
+            "application/json": "shelfmark.document_requests.loaders:document_request_loader"  # noqa
+        },
+        record_serializers={
+            "application/json": "shelfmark.records.serializers:json_v1_response"
+        },
+        search_serializers={
+            "application/json": "shelfmark.records.serializers:json_v1_search",
+            "text/csv": "shelfmark.records.serializers:csv_v1_search",
+        },
+        search_serializers_aliases={
+            "csv": "text/csv",
+            "json": "application/json",
+        },
+        list_route="/document-requests/",
+        item_route="/document-requests/<{0}:pid_value>".format(_DREQID_CONVERTER),
+        default_media_type="application/json",
+        max_result_window=RECORDS_REST_MAX_RESULT_WINDOW,
+        error_handlers=dict(),
+        read_permission_factory_imp=PatronOwnerReadPermission,
+        # auth via search_factory
+        list_permission_factory_imp=authenticated_user_permission,
+        create_permission_factory_imp=authenticated_user_permission,
+        update_permission_factory_imp=backoffice_permission,
+        delete_permission_factory_imp=backoffice_permission,
+    ),
     vocid=dict(
         pid_type=VOCABULARY_PID_TYPE,
         pid_minter=VOCABULARY_PID_MINTER,
@@ -476,6 +526,14 @@ RECORDS_REST_ENDPOINTS = dict(
 # RECORDS REST sort options
 # =========================
 RECORDS_REST_SORT_OPTIONS = dict(
+    document_requests=dict(  # DocumentRequestSearch.Meta.index
+        created=dict(fields=["_created"], title="Recently added", order=1),
+        bestmatch=dict(
+            fields=["-_score"],
+            title="Best match",
+            order=2,
+        ),
+    ),
     eitems=dict(  # ItemSearch.Meta.index
         created=dict(fields=["_created"], title="Recently added", order=1),
         bestmatch=dict(
@@ -526,6 +584,16 @@ RECORDS_REST_DEFAULT_RESULTS_SIZE = 15
 FACET_TAG_LIMIT = 5
 
 RECORDS_REST_FACETS = dict(
+    document_requests=dict(  # DocumentRequestSearch.Meta.index
+        aggs=dict(
+            state=dict(terms=dict(field="state")),
+            decline_reason=dict(terms=dict(field="decline_reason")),
+        ),
+        post_filters=dict(
+            state=terms_filter("state"),
+            decline_reason=terms_filter("decline_reason"),
+        ),
+    ),
     items=dict(  # ItemSearch.Meta.index
         aggs=dict(
             status=dict(terms=dict(field="status")),
