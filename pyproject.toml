@@ -161,6 +161,7 @@ serid = "shelfmark.series.api:series_pid_minter"
 vocid = "shelfmark.vocabularies.api:vocabulary_pid_minter"
 
 [project.entry-points."invenio_records.jsonresolver"]
+document_circulation = "shelfmark.documents.jsonresolvers.document_circulation"
 document_eitem = "shelfmark.documents.jsonresolvers.document_eitem"
 document_item = "shelfmark.documents.jsonresolvers.document_item"
 document_relations = "shelfmark.documents.jsonresolvers.document_relations"
