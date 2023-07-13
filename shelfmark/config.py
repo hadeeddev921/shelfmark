@@ -18,6 +18,7 @@ from invenio_records_rest.facets import terms_filter
 from invenio_records_rest.utils import allow_all, deny_all
 
 from shelfmark.document_requests.indexer import DocumentRequestIndexer
+from shelfmark.documents.indexer import DocumentIndexer
 from shelfmark.eitems.indexer import EItemIndexer
 from shelfmark.internal_locations.indexer import InternalLocationIndexer
 from shelfmark.items.indexer import ItemIndexer
@@ -39,9 +40,20 @@ from .document_requests.api import (
 )
 from .document_requests.notifications.api import document_request_notification_filter
 from .document_requests.search import DocumentRequestSearch
+from .documents.api import (
+    DOCUMENT_PID_FETCHER,
+    DOCUMENT_PID_MINTER,
+    DOCUMENT_PID_TYPE,
+    Document,
+)
+from .documents.search import DocumentSearch
 from .eitems.api import EITEM_PID_FETCHER, EITEM_PID_MINTER, EITEM_PID_TYPE, EItem
 from .eitems.search import EItemSearch
-from .facets import default_value_when_missing_filter, exists_value_filter
+from .facets import (
+    default_value_when_missing_filter,
+    exists_value_filter,
+    keyed_range_filter,
+)
 from .internal_locations.api import (
     INTERNAL_LOCATION_PID_FETCHER,
     INTERNAL_LOCATION_PID_MINTER,
@@ -253,6 +265,11 @@ SPA_PATHS = dict(
     profile="/profile",
     search="/search?q=%(querystring)s",
 )
+
+###############################################################################
+# RECORDS REST
+###############################################################################
+_DOCID_CONVERTER = 'pid(docid, record_class="shelfmark.documents.api:Document")'
 _PITMID_CONVERTER = 'pid(pitmid, record_class="shelfmark.items.api:Item")'
 _EITMID_CONVERTER = 'pid(eitmid, record_class="shelfmark.eitems.api:EItem")'
 _LOCID_CONVERTER = 'pid(locid, record_class="shelfmark.locations.api:Location")'
@@ -267,6 +284,41 @@ PIDSTORE_RECID_FIELD = "pid"
 REST_MIMETYPE_QUERY_ARG_NAME = "format"
 
 RECORDS_REST_ENDPOINTS = dict(
+    docid=dict(
+        pid_type=DOCUMENT_PID_TYPE,
+        pid_minter=DOCUMENT_PID_MINTER,
+        pid_fetcher=DOCUMENT_PID_FETCHER,
+        search_class=DocumentSearch,
+        record_class=Document,
+        indexer_class=DocumentIndexer,
+        search_factory_imp="shelfmark.search_permissions:ils_search_factory",  # noqa
+        record_loaders={
+            "application/json": "shelfmark.documents.loaders:document_loader"
+        },
+        record_serializers={
+            "application/json": (
+                "shelfmark.literature.serializers:json_v1_response"
+            )
+        },
+        search_serializers={
+            "application/json": "shelfmark.literature.serializers:json_v1_search",
+            "text/csv": "shelfmark.literature.serializers:csv_v1_search",
+        },
+        search_serializers_aliases={
+            "csv": "text/csv",
+            "json": "application/json",
+        },
+        list_route="/documents/",
+        item_route="/documents/<{0}:pid_value>".format(_DOCID_CONVERTER),
+        default_media_type="application/json",
+        max_result_window=RECORDS_REST_MAX_RESULT_WINDOW,
+        error_handlers=dict(),
+        read_permission_factory_imp=record_read_permission_factory,
+        list_permission_factory_imp=allow_all,  # auth via search filter
+        create_permission_factory_imp=backoffice_permission,
+        update_permission_factory_imp=backoffice_permission,
+        delete_permission_factory_imp=backoffice_permission,
+    ),
     pitmid=dict(
         pid_type=ITEM_PID_TYPE,
         pid_minter=ITEM_PID_MINTER,
@@ -534,6 +586,39 @@ RECORDS_REST_SORT_OPTIONS = dict(
             order=2,
         ),
     ),
+    documents=dict(  # DocumentSearch.Meta.index
+        created=dict(fields=["_created"], title="Recently added", order=1),
+        bestmatch=dict(
+            fields=["-_score"],
+            title="Best match",
+            order=2,
+        ),
+        available_copies=dict(
+            fields=["circulation.available_items_for_loan_count"],
+            title="Available copies",
+            order=3,
+        ),
+        mostloaned=dict(
+            fields=["circulation.past_loans_count"],
+            title="Most loaned",
+            order=4,
+        ),
+        publication_year=dict(
+            fields=["publication_year"],
+            title="Publication year",
+            order=5,
+        ),
+        title=dict(
+            fields=["title.keyword"],
+            title="Title",
+            order=6,
+        ),
+        loan_requests=dict(
+            fields=["circulation.pending_loans_count"],
+            title="Loan requests",
+            order=7,
+        ),
+    ),
     eitems=dict(  # ItemSearch.Meta.index
         created=dict(fields=["_created"], title="Recently added", order=1),
         bestmatch=dict(
@@ -584,6 +669,42 @@ RECORDS_REST_DEFAULT_RESULTS_SIZE = 15
 FACET_TAG_LIMIT = 5
 
 RECORDS_REST_FACETS = dict(
+    documents=dict(  # DocumentSearch.Meta.index
+        aggs=dict(
+            access=dict(terms=dict(field="restricted")),
+            tag=dict(terms=dict(field="tags", size=FACET_TAG_LIMIT)),
+            language=dict(terms=dict(field="languages")),
+            doctype=dict(terms=dict(field="document_type")),
+            relation=dict(terms=dict(field="relation_types")),
+            availability=dict(
+                range=dict(
+                    field="circulation.available_items_for_loan_count",
+                    ranges=[{"key": "on shelf", "from": 1}],
+                ),
+                aggs={
+                    "zero_doc_count_filter": {
+                        "bucket_selector": {
+                            "buckets_path": {"count": "_count"},
+                            "script": "params.count > 0",
+                        }
+                    }
+                },
+            ),
+            medium=dict(terms=dict(field="stock.mediums")),
+        ),
+        post_filters=dict(
+            access=terms_filter("restricted"),
+            doctype=terms_filter("document_type"),
+            language=terms_filter("languages"),
+            tag=terms_filter("tags"),
+            availability=keyed_range_filter(
+                "circulation.available_items_for_loan_count",
+                {"on shelf": {"gt": 0}},
+            ),
+            relation=terms_filter("relation_types"),
+            medium=terms_filter("stock.mediums"),
+        ),
+    ),
     document_requests=dict(  # DocumentRequestSearch.Meta.index
         aggs=dict(
             state=dict(terms=dict(field="state")),
