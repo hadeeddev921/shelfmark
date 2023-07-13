@@ -29,6 +29,7 @@ from shelfmark.literature.api import (
 )
 from shelfmark.literature.search import LiteratureSearch
 from shelfmark.locations.indexer import LocationIndexer
+from shelfmark.patrons.indexer import PatronIndexer
 from shelfmark.series.indexer import SeriesIndexer
 from shelfmark.vocabularies.indexer import VocabularyIndexer
 
@@ -70,6 +71,15 @@ from .locations.api import (
     Location,
 )
 from .locations.search import LocationSearch
+from .patrons.api import (
+    PATRON_PID_FETCHER,
+    PATRON_PID_MINTER,
+    PATRON_PID_TYPE,
+    AnonymousPatron,
+    Patron,
+    SystemAgent,
+)
+from .patrons.search import PatronsSearch
 from .permissions import (
     PatronOwnerReadPermission,
     authenticated_user_permission,
@@ -478,6 +488,35 @@ RECORDS_REST_ENDPOINTS = dict(
         update_permission_factory_imp=backoffice_permission,
         delete_permission_factory_imp=backoffice_permission,
     ),
+    patid=dict(
+        pid_type=PATRON_PID_TYPE,
+        pid_minter=PATRON_PID_MINTER,
+        pid_fetcher=PATRON_PID_FETCHER,
+        search_class=PatronsSearch,
+        record_class=Patron,
+        indexer_class=PatronIndexer,
+        record_serializers={
+            "application/json": "invenio_records_rest.serializers:json_v1_response"
+        },
+        search_serializers={
+            "application/json": "shelfmark.records.serializers:json_v1_search",
+            "text/csv": "shelfmark.records.serializers:csv_v1_search",
+        },
+        search_serializers_aliases={
+            "csv": "text/csv",
+            "json": "application/json",
+        },
+        item_route="/patrons/<pid({}):pid_value>".format(PATRON_PID_TYPE),
+        list_route="/patrons/",
+        default_media_type="application/json",
+        max_result_window=RECORDS_REST_MAX_RESULT_WINDOW,
+        error_handlers=dict(),
+        read_permission_factory_imp=deny_all,
+        list_permission_factory_imp=backoffice_read_permission,
+        create_permission_factory_imp=deny_all,
+        update_permission_factory_imp=deny_all,
+        delete_permission_factory_imp=deny_all,
+    ),
     dreqid=dict(
         pid_type=DOCUMENT_REQUEST_PID_TYPE,
         pid_minter=DOCUMENT_REQUEST_PID_MINTER,
@@ -642,6 +681,23 @@ RECORDS_REST_SORT_OPTIONS = dict(
         title=dict(
             fields=["document.title.keyword"],
             title="Title",
+            order=3,
+        ),
+    ),
+    patrons=dict(  # PatronsSearch.Meta.index
+        bestmatch=dict(
+            fields=["-_score"],
+            title="Best match",
+            order=1,
+        ),
+        name=dict(
+            fields=["name.keyword"],
+            title="Name [A-Z]",
+            order=2,
+        ),
+        name_desc=dict(
+            fields=["-name.keyword"],
+            title="Name [Z-A]",
             order=3,
         ),
     ),
@@ -819,6 +875,10 @@ ILS_VOCABULARY_SOURCES = {
 }
 
 OPENDEFINITION_JSONRESOLVER_HOST = "inveniosoftware.org"
+
+# Define the class for the Anonymous and SystemAgent patrons
+ILS_PATRON_ANONYMOUS_CLASS = AnonymousPatron
+ILS_PATRON_SYSTEM_AGENT_CLASS = SystemAgent
 
 # Use default frontpage
 THEME_FRONTPAGE = False
