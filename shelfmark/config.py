@@ -8,6 +8,8 @@ You overwrite and set instance-specific configuration by either:
 - Configuration file: ``<virtualenv prefix>/var/instance/invenio.cfg``
 - Environment variables: ``APP_<variable name>``
 """
+
+import datetime
 from datetime import timedelta
 
 from celery.schedules import crontab
@@ -221,6 +223,13 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": crontab(minute=0, hour=2),  # every day, 2am
     },
 }
+
+#: When the closures of a location are updated,
+# start a task to update the active loans.
+EXTEND_LOANS_LOCATION_UPDATED = True
+
+#: Time at which the task should be run.
+EXTEND_LOANS_SCHEDULE_TIME = datetime.time(2)
 
 ###############################################################################
 # Database
