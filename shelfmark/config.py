@@ -222,6 +222,14 @@ CELERY_BEAT_SCHEDULE = {
         "task": "shelfmark.circulation.notifications.tasks.send_overdue_loans_notification_reminder",  # noqa
         "schedule": crontab(minute=0, hour=2),  # every day, 2am
     },
+    "clean_locations_past_closures_exceptions": {
+        "task": (
+            "shelfmark.closures.tasks.clean_locations_past_closures_exceptions"
+        ),  # noqa
+        "schedule": crontab(
+            0, 0, day_of_month=31, month_of_year=1
+        ),  # January 31st of every year
+    },
 }
 
 #: When the closures of a location are updated,
