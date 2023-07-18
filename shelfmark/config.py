@@ -11,6 +11,7 @@ You overwrite and set instance-specific configuration by either:
 
 import datetime
 from datetime import timedelta
+from functools import partial
 
 from celery.schedules import crontab
 from invenio_accounts.config import (
@@ -20,7 +21,7 @@ from invenio_records_rest.facets import terms_filter
 from invenio_records_rest.utils import allow_all, deny_all
 from invenio_stats.aggregations import StatAggregator
 from invenio_stats.processors import EventsIndexer
-from invenio_stats.queries import ESTermsQuery
+from invenio_stats.queries import DateHistogramQuery, ESTermsQuery
 
 from shelfmark.document_requests.indexer import DocumentRequestIndexer
 from shelfmark.documents.indexer import DocumentIndexer
@@ -36,6 +37,7 @@ from shelfmark.literature.search import LiteratureSearch
 from shelfmark.locations.indexer import LocationIndexer
 from shelfmark.patrons.indexer import PatronIndexer
 from shelfmark.series.indexer import SeriesIndexer
+from shelfmark.stats.event_builders import ils_record_changed_event_builder
 from shelfmark.vocabularies.indexer import VocabularyIndexer
 
 from .document_requests.api import (
@@ -90,6 +92,7 @@ from .permissions import (
     authenticated_user_permission,
     backoffice_permission,
     backoffice_read_permission,
+    superuser_permission,
 )
 from .records.permissions import record_read_permission_factory
 from .series.api import SERIES_PID_FETCHER, SERIES_PID_MINTER, SERIES_PID_TYPE, Series
@@ -895,6 +898,57 @@ STATS_EVENTS = {
             "suffix": "%Y-%m",
         },
     },
+    "ils-record-changes-updates": {
+        "signal": "invenio_records.signals.after_record_update",
+        "templates": "shelfmark.stats.templates.events.ils_record_changes",
+        "event_builders": [
+            partial(ils_record_changed_event_builder, method="update"),
+            "shelfmark.stats.event_builders.add_librarian_user_id_to_event",
+            "shelfmark.stats.event_builders.add_record_pid_to_event",
+        ],
+        "cls": EventsIndexer,
+        "params": {
+            "preprocessors": [
+                "shelfmark.stats.processors.add_record_change_ids",
+            ],
+            "double_click_window": 0,
+            "suffix": "%Y",
+        },
+    },
+    "ils-record-changes-insertions": {
+        "signal": "invenio_records.signals.after_record_insert",
+        "templates": "shelfmark.stats.templates.events.ils_record_changes",
+        "event_builders": [
+            partial(ils_record_changed_event_builder, method="insert"),
+            "shelfmark.stats.event_builders.add_librarian_user_id_to_event",
+            "shelfmark.stats.event_builders.add_record_pid_to_event",
+        ],
+        "cls": EventsIndexer,
+        "params": {
+            "preprocessors": [
+                "shelfmark.stats.processors.add_record_change_ids",
+            ],
+            "double_click_window": 0,
+            "suffix": "%Y",
+        },
+    },
+    "ils-record-changes-deletions": {
+        "signal": "invenio_records.signals.after_record_delete",
+        "templates": "shelfmark.stats.templates.events.ils_record_changes",
+        "event_builders": [
+            partial(ils_record_changed_event_builder, method="delete"),
+            "shelfmark.stats.event_builders.add_librarian_user_id_to_event",
+            "shelfmark.stats.event_builders.add_record_pid_to_event",
+        ],
+        "cls": EventsIndexer,
+        "params": {
+            "preprocessors": [
+                "shelfmark.stats.processors.add_record_change_ids",
+            ],
+            "double_click_window": 0,
+            "suffix": "%Y",
+        },
+    },
 }
 
 STATS_AGGREGATIONS = {
@@ -941,6 +995,19 @@ STATS_AGGREGATIONS = {
             ),
         ),
     ),
+    "ils-record-changes-agg": dict(
+        templates="shelfmark.stats.templates.aggregations.ils_record_changes",
+        cls=StatAggregator,
+        params=dict(
+            event="ils-record-changes",
+            field="aggregation_id",
+            interval="day",
+            index_interval="year",
+            copy_fields=dict(pid_type="pid_type", method="method", user_id="user_id"),
+            metric_fields=dict(),
+            query_modifiers=[],
+        ),
+    ),
 }
 
 STATS_QUERIES = {
@@ -975,6 +1042,44 @@ STATS_QUERIES = {
                 count=("sum", "count", {}),
                 unique_count=("sum", "unique_count", {}),
             ),
+        ),
+    ),
+    "ils-record-changes": dict(
+        cls=DateHistogramQuery,
+        permission_factory=backoffice_read_permission,
+        params=dict(
+            index="stats-ils-record-changes",
+            copy_fields=dict(
+                pid_type="pid_type",
+                method="method",
+            ),
+            required_filters=dict(
+                pid_type="pid_type",
+                method="method",
+            ),
+            metric_fields=dict(
+                count=("sum", "count", {}),
+            ),
+        ),
+    ),
+    "ils-record-changes-per-user": dict(
+        cls=ESTermsQuery,
+        permission_factory=superuser_permission,
+        params=dict(
+            index="stats-ils-record-changes",
+            copy_fields=dict(
+                pid_type="pid_type",
+                method="method",
+                user_id="user_id",
+            ),
+            required_filters=dict(
+                pid_type="pid_type",
+                method="method",
+            ),
+            metric_fields=dict(
+                count=("sum", "count", {}),
+            ),
+            aggregated_fields=["user_id"],
         ),
     ),
 }
