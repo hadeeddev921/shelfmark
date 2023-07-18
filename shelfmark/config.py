@@ -18,6 +18,9 @@ from invenio_accounts.config import (
 )
 from invenio_records_rest.facets import terms_filter
 from invenio_records_rest.utils import allow_all, deny_all
+from invenio_stats.aggregations import StatAggregator
+from invenio_stats.processors import EventsIndexer
+from invenio_stats.queries import ESTermsQuery
 
 from shelfmark.document_requests.indexer import DocumentRequestIndexer
 from shelfmark.documents.indexer import DocumentIndexer
@@ -849,6 +852,132 @@ RECORDS_REST_FACETS = dict(
         ),
     ),
 )
+
+# Stats
+# =====
+STATS_EVENTS = {
+    "file-download": {
+        "signal": "shelfmark.signals.file_downloaded",
+        "templates": "shelfmark.stats.file_download",
+        "event_builders": [
+            "shelfmark.eitems.api:eitem_event_builder",
+            "invenio_stats.contrib.event_builders.file_download_event_builder",
+        ],
+        "cls": EventsIndexer,
+        "params": {
+            "preprocessors": [
+                "invenio_stats.processors:flag_robots",
+                lambda doc: doc if not doc["is_robot"] else None,
+                "invenio_stats.processors:flag_machines",
+                "invenio_stats.processors:anonymize_user",
+                "invenio_stats.contrib.event_builders:build_file_unique_id",
+            ],
+            "double_click_window": 30,
+            "suffix": "%Y-%m",
+        },
+    },
+    "record-view": {
+        "signal": "shelfmark.signals.record_viewed",
+        "templates": "invenio_stats.contrib.record_view",
+        "event_builders": [
+            "invenio_stats.contrib.event_builders.record_view_event_builder"
+        ],
+        "cls": EventsIndexer,
+        "params": {
+            "preprocessors": [
+                "invenio_stats.processors:flag_robots",
+                lambda doc: doc if not doc["is_robot"] else None,
+                "invenio_stats.processors:flag_machines",
+                "invenio_stats.processors:anonymize_user",
+                "invenio_stats.contrib.event_builders:build_record_unique_id",
+            ],
+            "double_click_window": 30,
+            "suffix": "%Y-%m",
+        },
+    },
+}
+
+STATS_AGGREGATIONS = {
+    "file-download-agg": dict(
+        templates="shelfmark.stats.aggregations.aggr_file_download",
+        cls=StatAggregator,
+        params=dict(
+            event="file-download",
+            field="file_id",
+            interval="day",
+            index_interval="month",
+            copy_fields=dict(
+                bucket_id="bucket_id",
+                file_id="file_id",
+                file_key="file_key",
+                size="size",
+                eitem_pid="eitem_pid",
+                document_pid="document_pid",
+            ),
+            metric_fields=dict(
+                unique_count=(
+                    "cardinality",
+                    "unique_session_id",
+                    {"precision_threshold": 1000},
+                )
+            ),
+        ),
+    ),
+    "record-view-agg": dict(
+        templates="invenio_stats.contrib.aggregations.aggr_record_view",
+        cls=StatAggregator,
+        params=dict(
+            event="record-view",
+            field="pid_value",
+            interval="day",
+            index_interval="month",
+            copy_fields=dict(pid_type="pid_type", pid_value="pid_value"),
+            metric_fields=dict(
+                unique_count=(
+                    "cardinality",
+                    "unique_session_id",
+                    {"precision_threshold": 1000},
+                )
+            ),
+        ),
+    ),
+}
+
+STATS_QUERIES = {
+    "file-download-by-document": dict(
+        cls=ESTermsQuery,
+        permission_factory=None,
+        params=dict(
+            index="stats-file-download",
+            copy_fields=dict(
+                bucket_id="bucket_id",
+                file_id="file_id",
+                file_key="file_key",
+                size="size",
+                eitem_pid="eitem_pid",
+                document_pid="document_pid",
+            ),
+            required_filters=dict(document_pid="document_pid"),
+            metric_fields=dict(
+                count=("sum", "count", {}),
+                unique_count=("sum", "unique_count", {}),
+            ),
+        ),
+    ),
+    "record-view": dict(
+        cls=ESTermsQuery,
+        permission_factory=None,
+        params=dict(
+            index="stats-record-view",
+            copy_fields=dict(pid_type="pid_type", pid_value="pid_value"),
+            required_filters=dict(pid_value="pid_value"),
+            metric_fields=dict(
+                count=("sum", "count", {}),
+                unique_count=("sum", "unique_count", {}),
+            ),
+        ),
+    ),
+}
 
 # List of available vocabularies
 ILS_VOCABULARIES = [
