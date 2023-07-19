@@ -38,6 +38,7 @@ from shelfmark.locations.indexer import LocationIndexer
 from shelfmark.patrons.indexer import PatronIndexer
 from shelfmark.series.indexer import SeriesIndexer
 from shelfmark.stats.event_builders import ils_record_changed_event_builder
+from shelfmark.stats.processors import LoansEventsIndexer
 from shelfmark.vocabularies.indexer import VocabularyIndexer
 
 from .document_requests.api import (
@@ -227,6 +228,32 @@ CELERY_BEAT_SCHEDULE = {
     "send_overdue_loan_reminders": {
         "task": "shelfmark.circulation.notifications.tasks.send_overdue_loans_notification_reminder",  # noqa
         "schedule": crontab(minute=0, hour=2),  # every day, 2am
+    },
+    "stats-process-events": {
+        "task": "invenio_stats.tasks.process_events",
+        "schedule": timedelta(minutes=30),
+        "args": [
+            (
+                "record-view",
+                "file-download",
+                "ils-record-changes-updates",
+                "ils-record-changes-insertions",
+                "ils-record-changes-deletions",
+                "loan-transitions",
+            )
+        ],
+    },
+    "stats-aggregate-events": {
+        "task": "invenio_stats.tasks.aggregate_events",
+        "schedule": timedelta(hours=3),
+        "args": [
+            (
+                "record-view-agg",
+                "file-download-agg",
+                "ils-record-changes-agg",
+                "loan-transitions-agg",
+            )
+        ],
     },
     "clean_locations_past_closures_exceptions": {
         "task": (
@@ -949,6 +976,25 @@ STATS_EVENTS = {
             "suffix": "%Y",
         },
     },
+    # The following events are used to count loan state transitions.
+    # Additionally, some transitions, e.g. "request", are used to store extra data,
+    # like the number of available items when a loan is requested.
+    # The loan indexer then later queries those events and adds the information to the loan.
+    "loan-transitions": {
+        "signal": "invenio_circulation.signals.loan_state_changed",
+        "templates": "shelfmark.stats.templates.events.loan_transitions",
+        "event_builders": [
+            "shelfmark.stats.event_builders.loan_transition_event_builder",
+        ],
+        "cls": LoansEventsIndexer,
+        "params": {
+            "preprocessors": [
+                "shelfmark.stats.processors.add_loan_transition_unique_id",
+            ],
+            "double_click_window": 0,
+            "suffix": "%Y",
+        },
+    },
 }
 
 STATS_AGGREGATIONS = {
@@ -1004,6 +1050,19 @@ STATS_AGGREGATIONS = {
             interval="day",
             index_interval="year",
             copy_fields=dict(pid_type="pid_type", method="method", user_id="user_id"),
+            metric_fields=dict(),
+            query_modifiers=[],
+        ),
+    ),
+    "loan-transitions-agg": dict(
+        templates="shelfmark.stats.templates.aggregations.loan_transitions",
+        cls=StatAggregator,
+        params=dict(
+            event="loan-transitions",
+            field="trigger",
+            interval="day",
+            index_interval="year",
+            copy_fields=dict(),
             metric_fields=dict(),
             query_modifiers=[],
         ),
@@ -1080,6 +1139,18 @@ STATS_QUERIES = {
                 count=("sum", "count", {}),
             ),
             aggregated_fields=["user_id"],
+        ),
+    ),
+    "loan-transitions": dict(
+        cls=DateHistogramQuery,
+        permission_factory=backoffice_read_permission,
+        params=dict(
+            index="stats-loan-transitions",
+            copy_fields=dict(),
+            required_filters=dict(trigger="trigger"),
+            metric_fields=dict(
+                count=("sum", "count", {}),
+            ),
         ),
     ),
 }
