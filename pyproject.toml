@@ -86,6 +86,7 @@ shelfmark_theme = "shelfmark.webpack:theme"
 [project.entry-points."invenio_base.api_blueprints"]
 ils_acquisition_stats = "shelfmark.acquisition.stats.views:create_acquisition_stats_blueprint"
 ils_circulation = "shelfmark.circulation.views:create_circulation_blueprint"
+ils_circulation_stats = "shelfmark.circulation.stats.views:create_circulation_stats_blueprint"
 ils_closures = "shelfmark.closures.views:create_closures_blueprint"
 ils_document_request = "shelfmark.document_requests.views:create_document_request_action_blueprint"
 ils_document_request_stats = "shelfmark.document_requests.stats.views:create_document_request_stats_blueprint"
