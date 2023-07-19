@@ -1,0 +1,81 @@
+# SPDX-FileCopyrightText: 2025 CERN.
+# SPDX-License-Identifier: MIT
+
+"""Shelfmark document requests stats views."""
+
+from flask import Blueprint, request
+from invenio_records_rest.query import default_search_factory
+from invenio_rest import ContentNegotiatedMethodView
+from marshmallow.exceptions import ValidationError
+
+from shelfmark.document_requests.api import DOCUMENT_REQUEST_PID_TYPE
+from shelfmark.errors import InvalidParameterError
+from shelfmark.permissions import need_permissions
+from shelfmark.proxies import current_app_ils
+from shelfmark.stats.histogram import (
+    HistogramParamsSchema,
+    create_histogram_view,
+    get_record_statistics,
+)
+
+
+def create_document_request_stats_blueprint(app):
+    """Add statistics views to the blueprint."""
+    blueprint = Blueprint(
+        "shelfmark_document_request_stats", __name__, url_prefix=""
+    )
+
+    create_histogram_view(
+        blueprint,
+        app,
+        DOCUMENT_REQUEST_PID_TYPE,
+        DocumentRequestHistogramResource,
+        "/document-requests",
+    )
+
+    return blueprint
+
+
+class DocumentRequestHistogramResource(ContentNegotiatedMethodView):
+    """Document request stats resource."""
+
+    view_name = "document_request_histogram"
+
+    def __init__(self, serializers, ctx, *args, **kwargs):
+        """Constructor."""
+        super().__init__(serializers, *args, **kwargs)
+        for key, value in ctx.items():
+            setattr(self, key, value)
+
+    @need_permissions("stats-document-requests")
+    def get(self, **kwargs):
+        """Get document request statistics."""
+
+        document_request_date_fields = [
+            "_created",
+            "_updated",
+        ]
+
+        schema = HistogramParamsSchema(document_request_date_fields)
+        try:
+            parsed_args = schema.load(request.args.to_dict())
+        except ValidationError as e:
+            raise InvalidParameterError(description=e.messages) from e
+
+        # Construct search to allow for filtering with the q parameter
+        search_cls = current_app_ils.document_request_search_cls
+        search = search_cls()
+        search, _ = default_search_factory(self, search)
+
+        aggregation_buckets = get_record_statistics(
+            document_request_date_fields,
+            search,
+            parsed_args["group_by"],
+            parsed_args["metrics"],
+        )
+
+        response = {
+            "buckets": aggregation_buckets,
+        }
+
+        return self.make_response(response, 200)
