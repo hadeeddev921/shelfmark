@@ -1198,6 +1198,8 @@ ILS_VOCABULARY_SOURCES = {
 
 OPENDEFINITION_JSONRESOLVER_HOST = "inveniosoftware.org"
 
+FILES_REST_PERMISSION_FACTORY = "shelfmark.permissions:files_permission"
+
 # Define the class for the Anonymous and SystemAgent patrons
 ILS_PATRON_ANONYMOUS_CLASS = AnonymousPatron
 ILS_PATRON_SYSTEM_AGENT_CLASS = SystemAgent

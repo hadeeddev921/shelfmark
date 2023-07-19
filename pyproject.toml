@@ -90,6 +90,7 @@ ils_circulation_stats = "shelfmark.circulation.stats.views:create_circulation_st
 ils_closures = "shelfmark.closures.views:create_closures_blueprint"
 ils_document_request = "shelfmark.document_requests.views:create_document_request_action_blueprint"
 ils_document_request_stats = "shelfmark.document_requests.stats.views:create_document_request_stats_blueprint"
+ils_files = "shelfmark.files.views:create_files_blueprint"
 ils_ill = "shelfmark.ill.views:create_ill_blueprint"
 ils_notifications = "shelfmark.notifications.views:get_notifications_blueprint"
 ils_patrons = "shelfmark.patrons.views:get_user_loan_information_blueprint"
