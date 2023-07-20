@@ -118,6 +118,7 @@ ils_notifications_backends = "shelfmark.notifications.backends.mail"
 
 [project.entry-points."invenio_config.module"]
 zy_shelfmark = "shelfmark.config"
+zy_shelfmark_circulation = "shelfmark.circulation.config"
 
 [project.entry-points."invenio_db.models"]
 ils_notifications_logs = "shelfmark.notifications.models"
