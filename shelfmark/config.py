@@ -94,6 +94,7 @@ from .permissions import (
     backoffice_permission,
     backoffice_read_permission,
     superuser_permission,
+    views_permissions_factory,
 )
 from .records.permissions import record_read_permission_factory
 from .series.api import SERIES_PID_FETCHER, SERIES_PID_MINTER, SERIES_PID_TYPE, Series
@@ -882,6 +883,18 @@ RECORDS_REST_FACETS = dict(
         ),
     ),
 )
+
+# ILS
+# ===
+
+ILS_VIEWS_PERMISSIONS_FACTORY = views_permissions_factory
+"""Permissions factory for ILS views to handle all ILS actions."""
+
+ILS_INDEXER_TASK_DELAY = timedelta(seconds=2)
+"""Trigger delay for celery tasks to index referenced records."""
+
+INDEXER_DEFAULT_DOC_TYPE = None
+"""Set deprecated doc type to none."""
 
 # Stats
 # =====
