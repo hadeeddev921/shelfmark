@@ -85,6 +85,7 @@ shelfmark_theme = "shelfmark.webpack:theme"
 
 [project.entry-points."invenio_base.api_apps"]
 ils_acquisition = "shelfmark.acquisition.ext:ShelfmarkAcquisition"
+ils_ill = "shelfmark.ill.ext:ShelfmarkIll"
 ils_providers = "shelfmark.providers.ext:ShelfmarkProviders"
 ils_rest = "shelfmark.ext:ShelfmarkREST"
 
@@ -104,6 +105,7 @@ ils_relations = "shelfmark.records_relations.views:create_relations_blueprint"
 
 [project.entry-points."invenio_base.apps"]
 ils_acquisition = "shelfmark.acquisition.ext:ShelfmarkAcquisition"
+ils_ill = "shelfmark.ill.ext:ShelfmarkIll"
 ils_providers = "shelfmark.providers.ext:ShelfmarkProviders"
 ils_ui = "shelfmark.ext:ShelfmarkUI"
 
