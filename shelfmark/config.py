@@ -33,6 +33,7 @@ from shelfmark.literature.api import (
     LITERATURE_PID_MINTER,
     LITERATURE_PID_TYPE,
 )
+from shelfmark.literature.covers_builder import build_ils_demo_cover_urls
 from shelfmark.literature.search import LiteratureSearch
 from shelfmark.locations.indexer import LocationIndexer
 from shelfmark.patrons.indexer import PatronIndexer
@@ -326,6 +327,11 @@ SPA_PATHS = dict(
     profile="/profile",
     search="/search?q=%(querystring)s",
 )
+
+###############################################################################
+# OAI-PMH
+###############################################################################
+OAISERVER_ID_PREFIX = "oai:shelfmark:"
 
 ###############################################################################
 # RECORDS REST
@@ -896,6 +902,9 @@ ILS_INDEXER_TASK_DELAY = timedelta(seconds=2)
 INDEXER_DEFAULT_DOC_TYPE = None
 """Set deprecated doc type to none."""
 
+# The HTML tags allowed with invenio_records_rest.schemas.fields.sanitizedhtml
+ALLOWED_HTML_TAGS = []
+
 # Stats
 # =====
 STATS_EVENTS = {
@@ -1213,9 +1222,33 @@ OPENDEFINITION_JSONRESOLVER_HOST = "inveniosoftware.org"
 
 FILES_REST_PERMISSION_FACTORY = "shelfmark.permissions:files_permission"
 
+ILS_RECORDS_EXPLICIT_PERMISSIONS_ENABLED = False
+"""Enable records restrictions by `_access` field.
+
+When enabled, it allows to define explicit permissions for each record to
+provide read access to specific users or roles.
+When disabled, it will avoid checking for user ids and roles on each search
+query and record fetch.
+"""
+
+ILS_LITERATURE_COVER_URLS_BUILDER = build_ils_demo_cover_urls
+"""Default implementation for building cover urls in document serializer."""
+
+# Namespaces for fields added to the metadata schema
+ILS_RECORDS_METADATA_NAMESPACES = {}
+
+# Fields added to the metadata schema
+ILS_RECORDS_METADATA_EXTENSIONS = {}
+
 # Define the class for the Anonymous and SystemAgent patrons
 ILS_PATRON_ANONYMOUS_CLASS = AnonymousPatron
 ILS_PATRON_SYSTEM_AGENT_CLASS = SystemAgent
+
+DB_VERSIONING_USER_MODEL = None
+
+# Feature Toggles
+ILS_SELF_CHECKOUT_ENABLED = False
+ILS_EXTEND_INDICES_WITH_STATS_ENABLED = False
 
 # Use default frontpage
 THEME_FRONTPAGE = False
