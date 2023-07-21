@@ -84,6 +84,7 @@ backoffice_readonly_access_action = "shelfmark.permissions:backoffice_readonly_a
 shelfmark_theme = "shelfmark.webpack:theme"
 
 [project.entry-points."invenio_base.api_apps"]
+ils_providers = "shelfmark.providers.ext:ShelfmarkProviders"
 ils_rest = "shelfmark.ext:ShelfmarkREST"
 
 [project.entry-points."invenio_base.api_blueprints"]
@@ -101,6 +102,7 @@ ils_patrons = "shelfmark.patrons.views:get_user_loan_information_blueprint"
 ils_relations = "shelfmark.records_relations.views:create_relations_blueprint"
 
 [project.entry-points."invenio_base.apps"]
+ils_providers = "shelfmark.providers.ext:ShelfmarkProviders"
 ils_ui = "shelfmark.ext:ShelfmarkUI"
 
 [project.entry-points."invenio_base.blueprints"]
