@@ -7,7 +7,7 @@ import os
 import pathlib
 import random
 import re
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from random import randint
 
 import arrow
@@ -21,13 +21,16 @@ from invenio_pidstore.providers.recordid_v2 import RecordIdProviderV2
 from lorem.text import TextLorem
 
 from shelfmark.errors import RecordRelationsError
+
+from .acquisition.api import ORDER_PID_TYPE, Order
 from .document_requests.api import DOCUMENT_REQUEST_PID_TYPE, DocumentRequest
 from .documents.api import DOCUMENT_PID_TYPE, Document
 from .eitems.api import EITEM_PID_TYPE, EItem
-from .ill.api import BORROWING_REQUEST_PID_TYPE
+from .ill.api import BORROWING_REQUEST_PID_TYPE, BorrowingRequest
 from .internal_locations.api import INTERNAL_LOCATION_PID_TYPE, InternalLocation
 from .items.api import ITEM_PID_TYPE, Item
 from .locations.api import LOCATION_PID_TYPE, Location
+from .providers.api import PROVIDER_PID_TYPE, Provider
 from .proxies import current_app_ils
 from .records_relations.api import RecordRelationsParentChild, RecordRelationsSiblings
 from .relations.api import Relation
@@ -962,6 +965,245 @@ class DocumentRequestGenerator(Generator):
             rec = self._persist(
                 DOCUMENT_REQUEST_PID_TYPE, "pid", DocumentRequest.create(obj)
             )
+            recs.append(rec)
+        db.session.commit()
+        return recs
+
+
+class LibraryGenerator(Generator):
+    """Location Generator."""
+
+    def random_name(self):
+        """Generate random name."""
+        parts = lorem.sentence().split()
+        return " ".join(parts[: min(randint(1, 2), len(parts))])
+
+    def generate(self):
+        """Generate."""
+        size = self.holder.libraries["total"]
+        objs = []
+        for pid in range(1, size + 1):
+            obj = {
+                "pid": self.create_pid(),
+                "name": self.random_name(),
+                "address": "CERN\n1211 Geneva 23\nSwitzerland",
+                "email": "visits.service@cern.ch",
+                "phone": "+41 (0) 22 76 776 76",
+                "notes": lorem.sentence(),
+                "type": "LIBRARY",
+            }
+            objs.append(obj)
+
+        self.holder.libraries["objs"] = objs
+
+    def persist(self):
+        """Persist."""
+        recs = []
+        for obj in self.holder.libraries["objs"]:
+            rec = self._persist(PROVIDER_PID_TYPE, "pid", Provider.create(obj))
+            recs.append(rec)
+        db.session.commit()
+        return recs
+
+
+class BorrowingRequestGenerator(Generator):
+    """Borrowing requests generator."""
+
+    def random_date(self, start, end):
+        """Generate random date between two dates."""
+        delta = end - start
+        int_delta = (delta.days * 24 * 3600) + delta.seconds
+        return start + timedelta(seconds=random.randrange(int_delta))
+
+    def random_document_pid(self):
+        """Get a random document PID."""
+        return random.choice(self.holder.pids("documents", "pid"))
+
+    def random_provider_pid(self):
+        """Get a random provider PID if the state is ACCEPTED."""
+        return random.choice(self.holder.pids("libraries", "pid"))
+
+    def random_price(self, currency, min_value=10.0):
+        """Generate random price."""
+        return {
+            "currency": currency,
+            "value": round(min_value + random.random() * 100, 2),
+        }
+
+    def generate(self):
+        """Generate."""
+        size = self.holder.borrowing_requests["total"]
+        objs = []
+        now = datetime.now()
+        for pid in range(1, size + 1):
+            status = random.choice(BorrowingRequest.STATUSES)
+            obj = {
+                "pid": self.create_pid(),
+                "status": status,
+                "provider_pid": self.random_provider_pid(),
+                "document_pid": self.random_document_pid(),
+                "patron_pid": random.choice(self.holder.patrons_pids),
+                "type": "E-BOOK",
+                "notes": lorem.sentence(),
+            }
+
+            t = now + timedelta(days=400)
+            if obj["status"] != "PENDING":
+                obj["request_date"] = self.random_date(now, t).date().isoformat()
+                obj["expected_delivery_date"] = (
+                    self.random_date(now, t).date().isoformat()
+                )
+                obj["received_date"] = self.random_date(now, t).date().isoformat()
+                obj["due_date"] = self.random_date(now, t).date().isoformat()
+                obj["payment"] = {
+                    "debit_cost_main_currency": self.random_price("CHF"),
+                    "debit_cost": self.random_price("EUR"),
+                    "debit_date": self.random_date(now, t).date().isoformat(),
+                    "debit_note": "Charged in euro",
+                    "mode": "CREDIT_CARD",
+                }
+                obj["total_main_currency"] = self.random_price("CHF")
+                obj["total"] = self.random_price("EUR")
+
+            if obj["status"] == "CANCELLED":
+                obj["cancel_reason"] = lorem.sentence()
+
+            objs.append(obj)
+
+            if status == "PENDING":
+                self.holder.pending_borrowing_requests["objs"] = objs
+
+        self.holder.borrowing_requests["objs"] = objs
+
+    def persist(self):
+        """Persist."""
+        recs = []
+        for obj in self.holder.borrowing_requests["objs"]:
+            rec = self._persist(
+                BORROWING_REQUEST_PID_TYPE, "pid", BorrowingRequest.create(obj)
+            )
+            recs.append(rec)
+        db.session.commit()
+        return recs
+
+
+class VendorGenerator(Generator):
+    """Provider generator."""
+
+    def random_name(self):
+        """Generate random name."""
+        parts = lorem.sentence().split()
+        return " ".join(parts[: min(randint(1, 2), len(parts))])
+
+    def generate(self):
+        """Generate."""
+        size = self.holder.vendors["total"]
+        objs = []
+        for pid in range(1, size + 1):
+            obj = {
+                "pid": self.create_pid(),
+                "name": self.random_name(),
+                "address": "CERN\n1211 Geneva 23\nSwitzerland",
+                "email": "visits.service@cern.ch",
+                "phone": "+41 (0) 22 76 776 76",
+                "notes": lorem.sentence(),
+                "type": "VENDOR",
+            }
+            objs.append(obj)
+
+        self.holder.vendors["objs"] = objs
+
+    def persist(self):
+        """Persist."""
+        recs = []
+        for obj in self.holder.vendors["objs"]:
+            rec = self._persist(PROVIDER_PID_TYPE, "pid", Provider.create(obj))
+            recs.append(rec)
+        db.session.commit()
+        return recs
+
+
+class OrderGenerator(Generator):
+    """Order generator."""
+
+    def random_date(self, start, end):
+        """Generate random date between two dates."""
+        delta = end - start
+        int_delta = (delta.days * 24 * 3600) + delta.seconds
+        return start + timedelta(seconds=random.randrange(int_delta))
+
+    def random_price(self, currency, min_value=10.0):
+        """Generate random price."""
+        return {
+            "currency": currency,
+            "value": round(min_value + random.random() * 100, 2),
+        }
+
+    def random_order_lines(self, status):
+        """Generate random order lines."""
+        doc_pids = self.holder.pids("documents", "pid")
+        count = randint(1, 6)
+        doc_pids = random.sample(doc_pids, count)
+        for i in range(count):
+            ordered = randint(1, 5)
+            yield dict(
+                copies_ordered=ordered,
+                copies_received=randint(1, ordered) if status == "RECEIVED" else 0,
+                document_pid=doc_pids[i],
+                is_donation=random.choice([True, False]),
+                is_patron_suggestion=random.choice([True, False]),
+                medium="PAPER",
+                notes=lorem.sentence(),
+                patron_pid=random.choice(self.holder.patrons_pids),
+                payment_mode="CREDIT_CARD",
+                purchase_type="PERPETUAL",
+                recipient="PATRON",
+                total_price=self.random_price("EUR"),
+                unit_price=self.random_price("EUR"),
+            )
+
+    def generate(self):
+        """Generate."""
+        size = self.holder.orders["total"]
+        objs = []
+        now = datetime.now()
+        for pid in range(1, size + 1):
+            order_date = self.random_date(datetime(2010, 1, 1), now)
+            status = random.choice(Order.STATUSES)
+            order_lines = list(self.random_order_lines(status))
+            obj = {
+                "pid": self.create_pid(),
+                "created_by_pid": self.holder.librarian_pid,
+                "provider_pid": random.choice(self.holder.vendors["objs"])["pid"],
+                "status": status,
+                "order_date": order_date.date().isoformat(),
+                "notes": lorem.sentence(),
+                "grand_total": self.random_price("EUR", min_value=50.0),
+                "grand_total_main_currency": self.random_price("CHF", min_value=60.0),
+                "funds": list(set(lorem.sentence().split())),
+                "payment": {
+                    "mode": "CREDIT_CARD",
+                },
+                "order_lines": order_lines,
+            }
+            obj["expected_delivery_date"] = (
+                self.random_date(now, now + timedelta(days=400)).date().isoformat()
+            )
+            if obj["status"] == "CANCELLED":
+                obj["cancel_reason"] = lorem.sentence()
+            elif obj["status"] == "RECEIVED":
+                obj["received_date"] = (
+                    self.random_date(order_date, now).date().isoformat()
+                )
+            objs.append(obj)
+
+        self.holder.orders["objs"] = objs
+
+    def persist(self):
+        """Persist."""
+        recs = []
+        for obj in self.holder.orders["objs"]:
+            rec = self._persist(ORDER_PID_TYPE, "pid", Order.create(obj))
             recs.append(rec)
         db.session.commit()
         return recs
