@@ -8,7 +8,12 @@ import pathlib
 import random
 from datetime import date, timedelta
 from random import randint
+
+import arrow
 import lorem
+from flask import current_app
+from invenio_circulation.api import Loan
+from invenio_circulation.pidstore.pids import CIRCULATION_LOAN_PID_TYPE
 from invenio_db import db
 from invenio_pidstore.models import PersistentIdentifier, PIDStatus
 from invenio_pidstore.providers.recordid_v2 import RecordIdProviderV2
@@ -19,6 +24,7 @@ from .internal_locations.api import INTERNAL_LOCATION_PID_TYPE, InternalLocation
 from .items.api import ITEM_PID_TYPE, Item
 from .locations.api import LOCATION_PID_TYPE, Location
 from .proxies import current_app_ils
+from .series.api import SERIES_PID_TYPE, Series
 
 CURRENT_DIR = pathlib.Path(__file__).parent.absolute()
 
@@ -560,6 +566,248 @@ class DocumentGenerator(Generator):
         recs = []
         for obj in self.holder.documents["objs"]:
             rec = self._persist(DOCUMENT_PID_TYPE, "pid", Document.create(obj))
+            recs.append(rec)
+        db.session.commit()
+        return recs
+
+
+class LoanGenerator(Generator):
+    """Loan Generator."""
+
+    LOAN_STATES = ["PENDING", "ITEM_ON_LOAN", "ITEM_RETURNED", "CANCELLED"]
+
+    def _get_item_can_circulate(self, items):
+        """Return an item that can circulate."""
+        item = items[randint(1, len(items) - 1)]
+        if item["status"] != "CAN_CIRCULATE":
+            return self._get_item_can_circulate(items)
+        return item
+
+    def _get_valid_status(self, item, items_on_loan):
+        """Return valid loan status for the item to avoid inconsistencies."""
+        # cannot have 2 loans in the same item
+        if item["pid"] in items_on_loan:
+            status = self.LOAN_STATES[0]
+        else:
+            status = self.LOAN_STATES[randint(0, 3)]
+        return status
+
+    def _fill_loan_with_valid_request(self, loan):
+        """Add fields to the loan with dates valid for a request."""
+        transaction_date = arrow.utcnow() - timedelta(days=randint(1, 10))
+        request_start_date = transaction_date + timedelta(days=15)
+        request_expire_date = transaction_date + timedelta(days=180)
+        loan["transaction_date"] = transaction_date.isoformat()
+        loan["request_start_date"] = request_start_date.date().isoformat()
+        loan["request_expire_date"] = request_expire_date.date().isoformat()
+
+    def _fill_loan_with_valid_loan(self, loan):
+        """Add fields to the loan with dates valid for a on-going loan."""
+        transaction_date = arrow.utcnow() - timedelta(days=randint(20, 30))
+        start_date = transaction_date - timedelta(days=randint(1, 5))
+        end_date = start_date + timedelta(days=30)
+        loan["transaction_date"] = transaction_date.isoformat()
+        loan["start_date"] = start_date.date().isoformat()
+        loan["end_date"] = end_date.date().isoformat()
+        loan["extension_count"] = randint(0, 3)
+
+    def _fill_loan_with_loan_returned(self, loan):
+        """Add fields to the loan with dates valid for a returned loan."""
+        transaction_date = arrow.utcnow() - timedelta(days=randint(50, 70))
+        start_date = transaction_date - timedelta(days=randint(40, 50))
+        end_date = start_date + timedelta(days=30)
+        loan["transaction_date"] = transaction_date.isoformat()
+        loan["start_date"] = start_date.date().isoformat()
+        loan["end_date"] = end_date.date().isoformat()
+
+    def _fill_loan_with_loan_cancelled(self, loan):
+        """Add fields to the loan with dates valid for a cancelled loan."""
+        transaction_date = arrow.utcnow() - timedelta(days=randint(50, 100))
+        request_expire_date = transaction_date + timedelta(days=180)
+        start_date = transaction_date - timedelta(days=randint(40, 50))
+        end_date = start_date + timedelta(days=30)
+        loan["transaction_date"] = transaction_date.isoformat()
+        loan["request_expire_date"] = request_expire_date.date().isoformat()
+        loan["start_date"] = start_date.date().isoformat()
+        loan["end_date"] = end_date.date().isoformat()
+        loan["cancel_reason"] = "{}".format(lorem.sentence())
+
+    def _fill_loan(self, loan):
+        """Fill loan with valid dates."""
+        if loan["state"] == "PENDING":
+            self._fill_loan_with_valid_request(loan)
+        elif loan["state"] == "ITEM_ON_LOAN":
+            self._fill_loan_with_valid_loan(loan)
+        elif loan["state"] == "ITEM_RETURNED":
+            self._fill_loan_with_loan_returned(loan)
+        elif loan["state"] == "CANCELLED":
+            self._fill_loan_with_loan_cancelled(loan)
+        return loan
+
+    def generate(self):
+        """Generate."""
+        size = self.holder.loans["total"]
+        loc_pid, _ = current_app_ils.get_default_location_pid
+        items = self.holder.items["objs"]
+        patrons_pids = self.holder.patrons_pids
+        librarian_pid = self.holder.librarian_pid
+        doc_pids = self.holder.pids("documents", "pid")
+        all_delivery_methods = list(
+            current_app.config["ILS_CIRCULATION_DELIVERY_METHODS"].keys()
+        )
+        delivery = all_delivery_methods[randint(0, 1)]
+
+        items_on_loan = []
+        for pid in range(1, size + 1):
+            item = self._get_item_can_circulate(items)
+            item_state = self._get_valid_status(item, items_on_loan)
+            patron_id = random.choice(patrons_pids)
+
+            loan = {
+                "pid": self.create_pid(),
+                "document_pid": random.choice(doc_pids),
+                "patron_pid": "{}".format(patron_id),
+                "pickup_location_pid": "{}".format(loc_pid),
+                "state": "{}".format(item_state),
+                "transaction_location_pid": "{}".format(loc_pid),
+                "transaction_user_pid": "{}".format(librarian_pid),
+                "delivery": {"method": delivery},
+            }
+            loan = self._fill_loan(loan)
+
+            if item_state != "PENDING":
+                loan["item_pid"] = {
+                    "type": ITEM_PID_TYPE,
+                    "value": item["pid"],
+                }
+                items_on_loan.append(item["pid"])
+
+            self.holder.loans["objs"].append(loan)
+
+    def persist(self):
+        """Persist."""
+        recs = []
+        for obj in self.holder.loans["objs"]:
+            rec = self._persist(CIRCULATION_LOAN_PID_TYPE, "pid", Loan.create(obj))
+            recs.append(rec)
+        db.session.commit()
+        return recs
+
+
+class SeriesGenerator(Generator):
+    """Series Generator."""
+
+    MODE_OF_ISSUANCE = Series.MODE_OF_ISSUANCE
+
+    def random_issn(self):
+        """Generate a random ISSN."""
+        random_4digit = [randint(1000, 9999), randint(1000, 9999)]
+        return "-".join(str(r) for r in random_4digit)
+
+    def random_multipart(self, obj, index):
+        """Randomize multipart data."""
+        obj["edition"] = str(index)
+        for _ in range(randint(1, 2)):
+            obj["identifiers"].append(
+                dict(scheme="ISBN", value=random.choice(DocumentGenerator.ISBNS))
+            )
+
+    def random_serial(self, obj):
+        """Randomize serial data."""
+        for _ in range(randint(1, 3)):
+            obj["identifiers"].append(
+                dict(
+                    material=random.choice(["ONLINE", "PRINT"]),
+                    scheme="ISSN",
+                    value=self.random_issn(),
+                )
+            )
+        obj["abbreviated_title"] = obj["title"].split()[0]
+        obj["alternative_titles"] = [
+            dict(value=obj["title"], type="SUBTITLE"),
+            dict(value=obj["title"].split()[0], type="ABBREVIATION"),
+            dict(
+                value=obj["title"],
+                type="TRANSLATED_TITLE",
+                language="FRA",
+            ),
+        ]
+        obj["internal_notes"] = [
+            dict(field="title", user="Test", value="Internal test note.")
+        ]
+        obj["notes"] = lorem.text()
+        obj["publisher"] = lorem.sentence().split()[0]
+        obj["access_urls"] = [
+            dict(
+                open_access=True,
+                description=lorem.sentence(),
+                value="https://home.cern/",
+            )
+            for _ in range(1, 3)
+        ]
+        obj["urls"] = [
+            dict(description=lorem.sentence(), value="https://home.cern/")
+            for _ in range(1, 3)
+        ]
+
+    def generate_minimal(self, objs):
+        """Generate a series with only the required fields."""
+        objs.append(
+            {
+                "pid": self.create_pid(),
+                "mode_of_issuance": "SERIAL",
+                "title": "Minimal Series",
+            }
+        )
+
+    def generate(self):
+        """Generate."""
+        size = self.holder.series["total"]
+        objs = []
+        self.generate_minimal(objs)
+        for index in range(1, size + 1):
+            moi = random.choice(self.MODE_OF_ISSUANCE)
+            authors = random.sample(
+                DocumentGenerator.AUTHORS, len(DocumentGenerator.AUTHORS)
+            )
+            obj = {
+                "pid": self.create_pid(),
+                "cover_metadata": {
+                    "ISBN": random.choice(DocumentGenerator.ISBNS),
+                    "urls": {},
+                },
+                "mode_of_issuance": moi,
+                "title": lorem.sentence(),
+                "authors": [author["full_name"] for author in authors],
+                "abstract": lorem.text(),
+                "languages": [
+                    lang["key"]
+                    for lang in random.sample(self.holder.languages, randint(1, 3))
+                ],
+                "identifiers": [],
+                "created_by": {"type": "script", "value": "demo"},
+                "tags": [
+                    tag["key"]
+                    for tag in random.sample(
+                        self.holder.tags, randint(1, len(self.holder.tags) - 1)
+                    )
+                ],
+                "keywords": [{"source": lorem.sentence(), "value": lorem.sentence()}],
+                "series_type": random.choice(Series.SERIES_TYPES),
+            }
+            if moi == "SERIAL":
+                self.random_serial(obj)
+            elif moi == "MULTIPART_MONOGRAPH":
+                self.random_multipart(obj, index)
+            objs.append(obj)
+
+        self.holder.series["objs"] = objs
+
+    def persist(self):
+        """Persist."""
+        recs = []
+        for obj in self.holder.series["objs"]:
+            rec = self._persist(SERIES_PID_TYPE, "pid", Series.create(obj))
             recs.append(rec)
         db.session.commit()
         return recs
