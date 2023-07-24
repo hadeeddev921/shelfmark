@@ -6,6 +6,7 @@ import json
 import os
 import pathlib
 import random
+import re
 from datetime import date, timedelta
 from random import randint
 
@@ -18,12 +19,18 @@ from invenio_db import db
 from invenio_pidstore.models import PersistentIdentifier, PIDStatus
 from invenio_pidstore.providers.recordid_v2 import RecordIdProviderV2
 from lorem.text import TextLorem
+
+from shelfmark.errors import RecordRelationsError
+from .document_requests.api import DOCUMENT_REQUEST_PID_TYPE, DocumentRequest
 from .documents.api import DOCUMENT_PID_TYPE, Document
 from .eitems.api import EITEM_PID_TYPE, EItem
+from .ill.api import BORROWING_REQUEST_PID_TYPE
 from .internal_locations.api import INTERNAL_LOCATION_PID_TYPE, InternalLocation
 from .items.api import ITEM_PID_TYPE, Item
 from .locations.api import LOCATION_PID_TYPE, Location
 from .proxies import current_app_ils
+from .records_relations.api import RecordRelationsParentChild, RecordRelationsSiblings
+from .relations.api import Relation
 from .series.api import SERIES_PID_TYPE, Series
 
 CURRENT_DIR = pathlib.Path(__file__).parent.absolute()
@@ -808,6 +815,153 @@ class SeriesGenerator(Generator):
         recs = []
         for obj in self.holder.series["objs"]:
             rec = self._persist(SERIES_PID_TYPE, "pid", Series.create(obj))
+            recs.append(rec)
+        db.session.commit()
+        return recs
+
+
+class RecordRelationsGenerator(Generator):
+    """Related records generator."""
+
+    @staticmethod
+    def random_series(series, moi):
+        """Get a random series with a specific mode of issuance."""
+        for s in random.sample(series, len(series)):
+            if s["mode_of_issuance"] == moi:
+                return s
+
+    def generate_parent_child_relations(self, documents, series):
+        """Generate parent-child relations."""
+
+        def random_docs():
+            docs = [doc for doc in documents if doc["document_type"] != "SERIAL_ISSUE"]
+            return random.sample(docs, randint(1, min(5, len(docs))))
+
+        objs = self.holder.related_records["objs"]
+        serial_parent = self.random_series(series, "SERIAL")
+        multipart_parent = self.random_series(series, "MULTIPART_MONOGRAPH")
+        multipart_children = random_docs()
+
+        serial_children = []
+        for document in documents:
+            if document["document_type"] == "SERIAL_ISSUE":
+                serial_children.append(document)
+
+        objs.append(serial_parent)
+        rr = RecordRelationsParentChild()
+        serial_relation = Relation.get_relation_by_name("serial")
+        multipart_relation = Relation.get_relation_by_name("multipart_monograph")
+        re_volume = re.compile(r"Volume (?P<volume>\d+)", re.IGNORECASE)
+        for index, child in enumerate(serial_children):
+            m = re_volume.match(child["title"])
+            volume = str(index + 1)
+            if m:
+                volume = m["volume"]
+            rr.add(
+                serial_parent,
+                child,
+                relation_type=serial_relation,
+                volume=volume,
+            )
+            objs.append(child)
+        for index, child in enumerate(multipart_children):
+            rr.add(
+                multipart_parent,
+                child,
+                relation_type=multipart_relation,
+                volume="{}".format(index + 1),
+            )
+            objs.append(child)
+
+    def generate_sibling_relations(self, documents, series):
+        """Generate sibling relations."""
+        objs = self.holder.related_records["objs"]
+        rr = RecordRelationsSiblings()
+
+        def add_random_relations(relation_type):
+            random_docs = random.sample(documents, randint(2, min(5, len(documents))))
+
+            for record in random_docs:
+                for doc in documents:
+                    try:
+                        rr.add(doc, record, relation_type=relation_type)
+                        break
+                    except RecordRelationsError:
+                        continue
+                objs.append(record)
+
+            if relation_type.name == "edition":
+                record = self.random_series(series, "MULTIPART_MONOGRAPH")
+                rr.add(random_docs[0], record, relation_type=relation_type)
+                objs.append(record)
+
+            if relation_type.name == "edition":
+                record = self.random_series(series, "MULTIPART_MONOGRAPH")
+                rr.add(random_docs[0], record, relation_type=relation_type)
+                objs.append(record)
+
+        add_random_relations(Relation.get_relation_by_name("language"))
+        add_random_relations(Relation.get_relation_by_name("edition"))
+
+    def generate(self, rec_docs, rec_series):
+        """Generate related records."""
+        self.generate_parent_child_relations(rec_docs, rec_series)
+        self.generate_sibling_relations(rec_docs, rec_series)
+
+    def persist(self):
+        """Persist."""
+        db.session.commit()
+        return self.holder.related_records["objs"]
+
+
+class DocumentRequestGenerator(Generator):
+    """Document requests generator."""
+
+    def random_document_pid(self):
+        """Get a random document PID."""
+        return random.choice(self.holder.pids("documents", "pid"))
+
+    def random_pending_borrowing_request(self):
+        """Get a random document PID."""
+        return random.choice(self.holder.pids("pending_borrowing_requests", "pid"))
+
+    def generate(self):
+        """Generate."""
+        size = self.holder.document_requests["total"]
+        objs = []
+        for pid in range(1, size + 1):
+            state = random.choice(DocumentRequest.STATES)
+            obj = {
+                "pid": self.create_pid(),
+                "state": state,
+                "patron_pid": random.choice(self.holder.patrons_pids),
+                "title": lorem.sentence(),
+                "authors": lorem.sentence(),
+                "publication_year": randint(1700, 2019),
+                "request_type": "LOAN",
+                "medium": "PAPER",
+            }
+            if state == "DECLINED":
+                obj["decline_reason"] = random.choice(DocumentRequest.DECLINE_TYPES)
+                if obj["decline_reason"] == "IN_CATALOG":
+                    obj["document_pid"] = self.random_document_pid()
+            elif state == "ACCEPTED":
+                obj["document_pid"] = self.random_document_pid()
+                obj["physical_item_provider"] = {
+                    "pid": self.random_pending_borrowing_request(),
+                    "pid_type": BORROWING_REQUEST_PID_TYPE,
+                }
+            objs.append(obj)
+
+        self.holder.document_requests["objs"] = objs
+
+    def persist(self):
+        """Persist."""
+        recs = []
+        for obj in self.holder.document_requests["objs"]:
+            rec = self._persist(
+                DOCUMENT_REQUEST_PID_TYPE, "pid", DocumentRequest.create(obj)
+            )
             recs.append(rec)
         db.session.commit()
         return recs
