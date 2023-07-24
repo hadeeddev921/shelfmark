@@ -13,6 +13,8 @@ from invenio_db import db
 from invenio_pidstore.models import PersistentIdentifier, PIDStatus
 from invenio_pidstore.providers.recordid_v2 import RecordIdProviderV2
 from lorem.text import TextLorem
+from .documents.api import DOCUMENT_PID_TYPE, Document
+from .eitems.api import EITEM_PID_TYPE, EItem
 from .internal_locations.api import INTERNAL_LOCATION_PID_TYPE, InternalLocation
 from .items.api import ITEM_PID_TYPE, Item
 from .locations.api import LOCATION_PID_TYPE, Location
@@ -253,6 +255,311 @@ class ItemGenerator(Generator):
         recs = []
         for obj in self.holder.items["objs"]:
             rec = self._persist(ITEM_PID_TYPE, "pid", Item.create(obj))
+            recs.append(rec)
+        db.session.commit()
+        return recs
+
+
+class EItemGenerator(Generator):
+    """EItem Generator."""
+
+    def generate(self):
+        """Generate."""
+        size = self.holder.eitems["total"]
+        doc_pids = self.holder.pids("documents", "pid")
+
+        objs = [
+            {
+                "pid": self.create_pid(),
+                "created_by": {
+                    "type": "script",
+                    "value": "demo",
+                },
+                "document_pid": random.choice(doc_pids),
+                "eitem_type": random.choice(EItem.EITEM_TYPES),
+                "description": "{}".format(lorem.text()),
+                "internal_notes": "{}".format(lorem.text()),
+                "urls": [
+                    {
+                        "value": "https://home.cern/science/physics/a",
+                        "description": "Dark matter",
+                    },
+                    {
+                        "value": "https://home.cern/science/physics/b",
+                        "description": "Anti matter",
+                    },
+                ],
+                "open_access": bool(random.getrandbits(1)),
+            }
+            for pid in range(1, size + 1)
+        ]
+
+        for obj in objs:
+            if bool(random.getrandbits(1)):
+                obj["identifiers"] = random.choice(
+                    [
+                        [
+                            {
+                                "scheme": "ISBN",
+                                "value": "0-395-36341-1",
+                                "material": "EBook",
+                            },
+                            {
+                                "scheme": "DOI",
+                                "value": "doi:10.1340/309registries",
+                            },
+                        ],
+                        [],
+                    ]
+                )
+
+        self.holder.eitems["objs"] = objs
+
+    def persist(self):
+        """Persist."""
+        recs = []
+        for obj in self.holder.eitems["objs"]:
+            rec = self._persist(EITEM_PID_TYPE, "pid", EItem.create(obj))
+            recs.append(rec)
+        db.session.commit()
+        return recs
+
+
+class DocumentGenerator(Generator):
+    """Document Generator."""
+
+    SERIAL_ISSUE = "SERIAL_ISSUE"
+    AUTHORS = [
+        {"full_name": "Close, Frank"},
+        {"full_name": "Harrison, Stacey"},
+        {"full_name": "Glover, Bruno"},
+        {"full_name": "CERN", "type": "ORGANISATION"},
+        {
+            "full_name": "Doe, Jane",
+            "affiliations": [
+                {
+                    "name": "Imperial Coll., London",
+                    "identifiers": [{"scheme": "ROR", "value": "12345"}],
+                }
+            ],
+            "identifiers": [{"scheme": "ORCID", "value": "1234AAA"}],
+            "roles": ["EDITOR"],
+        },
+        {
+            "full_name": "Haigh, Jill",
+            "roles": ["RESEARCHER"],
+            "affiliations": [{"name": "CERN"}],
+        },
+    ]
+    CONFERENCE_INFO = [
+        {
+            "acronym": "CHEP",
+            "country": "AUS",
+            "dates": "1 - 20 Nov. 2019",
+            "identifiers": [{"scheme": "OTHER", "value": "CHEP2019"}],
+            "place": "Adelaide",
+            "series": "CHEP",
+            "title": "Conference on Computing in High Energy Physics",
+            "year": 2019,
+        },
+        {
+            "place": "London",
+            "title": "Conference on Physics in High Energy Physics",
+        },
+    ]
+    IMPRINTS = [
+        {"date": "2019-08-02", "place": "Geneva", "publisher": "CERN"},
+        {"date": "2017-08-02", "place": "Hamburg", "publisher": "Springer"},
+    ]
+    ISBNS = [
+        "0002154129",
+        "978-1-891830-85-3",
+        "978-1-60309-265-4",
+        "978-1-60309-077-3",
+        "978-1-60309-069-8",
+        "978-1-60309-042-1",
+        "978-1-891830-37-2",
+        "978-1-60309-029-2",
+        "978-1-891830-40-2",
+        "978-1-60309-442-9",
+        "978-1-891830-56-3",
+        "978-1-60309-432-0",
+        "978-1-891830-19-8",
+        "978-1-60309-422-1",
+        "978-1-60309-100-8",
+        "978-1-891830-81-5",
+        "978-1-60309-271-5",
+        "978-1-891830-92-1",
+        "978-1-60309-057-5",
+        "978-1-60309-085-8",
+        "978-1-60309-387-3",
+        "978-1-60309-036-0",
+        "978-1-60309-053-7",
+        "978-1-891830-97-6",
+        "978-0-9585783-4-9",
+        "978-1-60309-397-2",
+        "978-1-60309-386-6",
+        "978-1-60309-098-8",
+        "978-1-60309-008-7",
+        "978-1-60309-441-2",
+        "978-1-891830-55-6",
+        "978-1-891830-86-0",
+        "978-1-891830-91-4",
+        "978-1-60309-041-4",
+        "978-1-60309-059-9",
+        "978-1-891830-65-5",
+        "978-1-891830-90-7",
+        "978-1-60309-006-3",
+        "978-1-60309-007-0",
+        "978-1-60309-437-5",
+        "978-1-891830-51-8",
+        "978-1-60309-070-4",
+        "978-1-63140-984-4",
+        "978-1-60309-393-4",
+        "978-1-60309-152-7",
+        "978-1-891830-33-4",
+        "978-1-60309-300-2",
+        "978-1-60309-383-5",
+        "978-1-60309-400-9",
+        "978-1-891830-36-5",
+        "978-1-60309-075-9",
+        "978-1-891830-68-6",
+        "978-1-60309-049-0",
+        "978-1-60309-409-2",
+        "978-1-60309-068-1",
+        "978-1-891830-29-7",
+        "978-1-60309-367-5",
+        "978-1-60309-413-9",
+        "978-1-60309-089-6",
+        "978-1-60309-445-0",
+        "978-1-891830-14-3",
+        "978-1-891830-50-1",
+        "978-1-60309-020-9",
+        "978-1-60309-031-5",
+        "978-1-60309-055-1",
+        "978-1-891830-96-9",
+        "978-1-60309-043-8",
+        "978-1-891830-87-7",
+        "978-1-60309-033-9",
+        "978-1-60309-005-6",
+        "978-1-60309-450-4",
+        "978-1-891830-31-0",
+        "978-1-891830-70-9",
+        "978-1-891830-98-3",
+        "978-1-60309-392-7",
+        "978-1-60309-074-2",
+        "978-1-891830-41-9",
+        "978-1-60309-088-9",
+        "978-1-60309-440-5",
+    ]
+
+    LICENSE = {
+        "license": {
+            "id": "license-0bsd",
+        },
+        "material": "paper",
+    }
+
+    COPYRIGHTS = {
+        "holder": "INSTITUTION",
+        "material": "paper",
+        "statement": "Copyright statement",
+        "url": "https://test.com",
+        "year": 1990,
+    }
+
+    def generate_document(self, index, **kwargs):
+        """Generate document data."""
+        publication_year = kwargs.get("publication_year", str(randint(1700, 2020)))
+        imprint = random.choice(self.IMPRINTS)
+        isbn = random.choice(self.ISBNS)
+        n_authors = randint(1, len(self.AUTHORS))
+        obj = {
+            "pid": self.create_pid(),
+            "title": lorem.sentence(),
+            "cover_metadata": {"ISBN": isbn, "urls": {}},
+            "copyrights": [self.COPYRIGHTS],
+            "authors": random.sample(self.AUTHORS, n_authors),
+            "abstract": "{}".format(lorem.text()),
+            "document_type": random.choice(Document.DOCUMENT_TYPES),
+            "created_by": {"type": "script", "value": "demo"},
+            "languages": [
+                lang["key"]
+                for lang in random.sample(self.holder.languages, randint(1, 3))
+            ],
+            "table_of_content": ["{}".format(lorem.sentence())],
+            "note": "{}".format(lorem.text()),
+            "tags": [
+                tag["key"]
+                for tag in random.sample(
+                    self.holder.tags, randint(1, len(self.holder.tags) - 1)
+                )
+            ],
+            "edition": str(index),
+            "keywords": [{"source": lorem.sentence(), "value": lorem.sentence()}],
+            "conference_info": self.CONFERENCE_INFO,
+            "number_of_pages": str(random.randint(0, 300)),
+            "identifiers": [{"scheme": "ISBN", "value": isbn}],
+            "alternative_identifiers": [{"scheme": "ARXIV", "value": "1234.1234"}],
+            "imprint": {
+                **imprint,
+                "date": "{}-08-02".format(publication_year),
+            },
+            "licenses": [self.LICENSE],
+            "publication_year": publication_year,
+            "subjects": [{"value": "515.353", "scheme": "Dewey"}],
+            "urls": [
+                {
+                    "description": "{}".format(lorem.sentence()),
+                    "value": "http://random.url",
+                }
+            ],
+            "restricted": False,
+        }
+        obj.update(**kwargs)
+        return obj
+
+    def generate(self):
+        """Generate."""
+        size = self.holder.documents["total"]
+
+        objs = [self.generate_document(index) for index in range(1, size + 1)]
+
+        # Generate periodical issues
+        volume = 1
+        issue = 1
+        publication_year = randint(1700, 2000)
+        for index in range(1, 11):
+            objs.append(
+                self.generate_document(
+                    index,
+                    document_type=self.SERIAL_ISSUE,
+                    title="Volume {} Issue {}".format(volume, issue),
+                    publication_year=str(publication_year),
+                )
+            )
+            if issue == 3:
+                issue = 1
+                volume += 1
+                publication_year += 1
+            else:
+                issue += 1
+
+        demo_data_dir = os.path.join(CURRENT_DIR, "demo_data")
+        with open(os.path.join(demo_data_dir, "documents.json")) as f:
+            demo_data = json.loads(f.read())
+
+        for doc in demo_data:
+            doc["pid"] = self.create_pid()
+
+        objs.extend(demo_data)
+        self.holder.documents["objs"] = objs
+
+    def persist(self):
+        """Persist."""
+        recs = []
+        for obj in self.holder.documents["objs"]:
+            rec = self._persist(DOCUMENT_PID_TYPE, "pid", Document.create(obj))
             recs.append(rec)
         db.session.commit()
         return recs
