@@ -72,6 +72,7 @@ Homepage = "https://github.com/hadeeddev921/shelfmark"
 ils = "invenio_app.cli:cli"
 
 [project.entry-points."flask.commands"]
+demo = "shelfmark.cli:demo"
 patrons = "shelfmark.patrons.cli:patrons"
 stats = "invenio_stats.cli:stats"
 vocabulary = "shelfmark.vocabularies.cli:vocabulary"

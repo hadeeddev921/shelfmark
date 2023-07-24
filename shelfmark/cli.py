@@ -11,13 +11,17 @@ from datetime import date, datetime, timedelta
 from random import randint
 
 import arrow
+import click
 import lorem
 from flask import current_app
+from flask.cli import with_appcontext
 from invenio_circulation.api import Loan
 from invenio_circulation.pidstore.pids import CIRCULATION_LOAN_PID_TYPE
 from invenio_db import db
+from invenio_indexer.api import RecordIndexer
 from invenio_pidstore.models import PersistentIdentifier, PIDStatus
 from invenio_pidstore.providers.recordid_v2 import RecordIdProviderV2
+from invenio_search import current_search
 from lorem.text import TextLorem
 
 from shelfmark.errors import RecordRelationsError
@@ -1207,3 +1211,339 @@ class OrderGenerator(Generator):
             recs.append(rec)
         db.session.commit()
         return recs
+
+
+@click.group()
+def demo():
+    """Demo data CLI."""
+
+
+@demo.command()
+@click.option("--docs", "n_docs", default=20)
+@click.option("--items", "n_items", default=50)
+@click.option("--eitems", "n_eitems", default=30)
+@click.option("--loans", "n_loans", default=100)
+@click.option("--internal-locations", "n_intlocs", default=10)
+@click.option("--series", "n_series", default=10)
+@click.option("--document-requests", "n_document_requests", default=10)
+@click.option("--vendors", "n_vendors", default=10)
+@click.option("--orders", "n_orders", default=30)
+@click.option("--libraries", "n_libraries", default=10)
+@click.option("--borrowing-requests", "n_borrowing_requests", default=10)
+@click.option("--verbose", is_flag=True, help="Verbose output.")
+@click.option("--skip-admin", "skip_admin", is_flag=True)
+@with_appcontext
+def data(
+    n_docs,
+    n_items,
+    n_eitems,
+    n_loans,
+    n_intlocs,
+    n_series,
+    n_document_requests,
+    n_vendors,
+    n_orders,
+    n_libraries,
+    n_borrowing_requests,
+    verbose,
+    skip_admin=False,
+):
+    """Insert demo data."""
+    click.secho("Generating demo data", fg="yellow")
+
+    indexer = RecordIndexer()
+
+    vocabulary_dir = os.path.join(CURRENT_DIR, "vocabularies", "data")
+    with open(os.path.join(vocabulary_dir, "tags.json")) as f:
+        tags = json.loads(f.read())
+
+    languages = [
+        {"key": "AAR", "text": "Afar (aar)", "type": "language"},
+        {"key": "ABK", "text": "Abkhazian (abk)", "type": "language"},
+        {"key": "AFR", "text": "Afrikaans (afr)", "type": "language"},
+        {"key": "III", "text": "Sichuan Yi (iii)", "type": "language"},
+        {"key": "IKU", "text": "Inuktitut (iku)", "type": "language"},
+        {"key": "ILE", "text": "Interlingue (ile)", "type": "language"},
+        {
+            "key": "INA",
+            "text": "Interlingua (International Auxiliary Language \
+                Association) (ina)",
+            "type": "language",
+        },
+        {"key": "IND", "text": "Indonesian (ind)", "type": "language"},
+        {"key": "IPK", "text": "Inupiaq (ipk)", "type": "language"},
+        {"key": "ISL", "text": "Icelandic (isl)", "type": "language"},
+        {"key": "ITA", "text": "Italian (ita)", "type": "language"},
+        {"key": "JAV", "text": "Javanese (jav)", "type": "language"},
+    ]
+
+    holder = Holder(
+        patrons_pids=["1", "2", "5", "4"],
+        languages=languages,
+        librarian_pid="3",
+        tags=tags,
+        total_intloc=n_intlocs,
+        total_items=n_items,
+        total_eitems=n_eitems,
+        total_documents=n_docs,
+        total_loans=n_loans,
+        total_series=n_series,
+        total_document_requests=n_document_requests,
+        total_vendors=n_vendors,
+        total_orders=n_orders,
+        total_borrowing_requests=n_borrowing_requests,
+        total_libraries=n_libraries,
+    )
+
+    # Create roles to restrict access
+    _run_command("roles create admin", verbose)
+    _run_command("roles create librarian", verbose)
+    _run_command("roles create librarian-readonly", verbose)
+
+    # Create users
+    patron1_profile = {"full_name": "Yannic Vilma"}
+    _run_command(
+        f"users create patron1@test.ch -a --password=123456 --profile '{json.dumps(patron1_profile)}'",
+        verbose,
+    )
+
+    patron2_profile = {"full_name": "Diana Adi"}
+    _run_command(
+        f"users create patron2@test.ch -a --password=123456 --profile '{json.dumps(patron2_profile)}'",
+        verbose,
+    )
+
+    librarian_profile = {"full_name": "Hector Nabu"}
+    _run_command(
+        f"users create librarian@test.ch -a --password=123456 --profile '{json.dumps(librarian_profile)}'",
+        verbose,
+    )
+
+    readonly_profile = {"full_name": "Ro Only"}
+    _run_command(
+        f"users create readonly@test.ch -a --password=123456 --profile '{json.dumps(readonly_profile)}'",
+        verbose,
+    )
+
+    patron3_profile = {"full_name": "Medrod Tara"}
+    _run_command(
+        f"users create patron3@test.ch -a --password=123456 --profile '{json.dumps(patron3_profile)}'",
+        verbose,
+    )
+
+    patron4_profile = {"full_name": "Devi Cupid"}
+    _run_command(
+        f"users create patron4@test.ch -a --password=123456 --profile '{json.dumps(patron4_profile)}'",
+        verbose,
+    )
+
+    if not skip_admin:
+        admin_profile = {"full_name": "Zeki Ryoichi"}
+        _run_command(
+            f"users create admin@test.ch -a --password=123456 --profile '{json.dumps(admin_profile)}'",
+            verbose,
+        )
+        _run_command("roles add admin@test.ch admin", verbose)
+
+    # assign roles
+    _run_command("roles add librarian@test.ch librarian", verbose)
+    _run_command("roles add readonly@test.ch librarian-readonly", verbose)
+
+    # Index vocabularies
+    vocabularies_dir = os.path.join(CURRENT_DIR, "vocabularies", "data")
+    json_files = " ".join(
+        os.path.join(vocabularies_dir, name)
+        for name in os.listdir(vocabularies_dir)
+        if name.endswith(".json")
+    )
+    _run_command("vocabulary index json --force {}".format(json_files), verbose)
+    _run_command("vocabulary index opendefinition spdx --force", verbose)
+    _run_command("vocabulary index opendefinition opendefinition --force", verbose)
+
+    # index languages
+    _run_command("vocabulary index languages --force", verbose)
+
+    # Assign actions
+    _run_command("access allow superuser-access role admin", verbose)
+    _run_command("access allow ils-backoffice-access role librarian", verbose)
+    _run_command(
+        "access allow ils-backoffice-readonly-access role librarian-readonly", verbose
+    )
+
+    # Create demo locations
+    click.echo("Creating locations and internal locations...")
+    fake_holder = type("FakeHolder", (object,), {"location": {}})
+    loc_generator = LocationGenerator(fake_holder, minter)
+    loc_generator.generate()
+    rec = loc_generator.persist()
+    indexer.index(rec)
+    current_search.flush_and_refresh(index="*")
+
+    # Index patrons
+    _run_command("patrons index", verbose)
+
+    # Create files location
+    _run_command("files location --default ils /tmp/ils-files", verbose)
+
+    # Create static pages
+    _run_command("fixtures pages", verbose)
+
+    # InternalLocations
+    intlocs_generator = InternalLocationGenerator(holder, minter)
+    intlocs_generator.generate()
+    rec_intlocs = intlocs_generator.persist()
+
+    # Series
+    click.echo("Creating series...")
+    series_generator = SeriesGenerator(holder, minter)
+    series_generator.generate()
+    rec_series = series_generator.persist()
+
+    # Documents
+    click.echo("Creating documents...")
+    documents_generator = DocumentGenerator(holder, minter)
+    documents_generator.generate()
+    rec_docs = documents_generator.persist()
+
+    # Items
+    click.echo("Creating items...")
+    items_generator = ItemGenerator(holder, minter)
+    items_generator.generate()
+    rec_items = items_generator.persist()
+
+    # EItems
+    click.echo("Creating eitems...")
+    eitems_generator = EItemGenerator(holder, minter)
+    eitems_generator.generate()
+    rec_eitems = eitems_generator.persist()
+
+    # Loans
+    click.echo("Creating loans...")
+    loans_generator = LoanGenerator(holder, minter)
+    loans_generator.generate()
+    rec_loans = loans_generator.persist()
+
+    # Related records
+    click.echo("Creating related records...")
+    related_generator = RecordRelationsGenerator(holder, minter)
+    related_generator.generate(rec_docs, rec_series)
+    related_generator.persist()
+
+    # Libraries
+    click.echo("Creating ILL external libraries...")
+    library_generator = LibraryGenerator(holder, minter)
+    library_generator.generate()
+    rec_libraries = library_generator.persist()
+
+    # Borrowing requests
+    click.echo("Creating ILL borrowing requests...")
+    borrowing_requests_generator = BorrowingRequestGenerator(holder, minter)
+    borrowing_requests_generator.generate()
+    rec_borrowing_requests = borrowing_requests_generator.persist()
+
+    # Document requests
+    click.echo("Creating document requests...")
+    document_requests_generator = DocumentRequestGenerator(holder, minter)
+    document_requests_generator.generate()
+    rec_requests = document_requests_generator.persist()
+
+    # Vendors
+    click.echo("Creating acquisition vendors...")
+    vendor_generator = VendorGenerator(holder, minter)
+    vendor_generator.generate()
+    rec_vendors = vendor_generator.persist()
+
+    # Orders
+    click.echo("Creating acquisition orders...")
+    order_generator = OrderGenerator(holder, minter)
+    order_generator.generate()
+    rec_orders = order_generator.persist()
+
+    # index internal locations
+    indexer.bulk_index([str(r.id) for r in rec_intlocs])
+    click.echo("Sent to the indexing queue {0} locations".format(len(rec_intlocs)))
+
+    # index series
+    indexer.bulk_index([str(r.id) for r in rec_series])
+    click.echo("Sent to the indexing queue {0} series".format(len(rec_series)))
+
+    # index loans
+    indexer.bulk_index([str(r.id) for r in rec_loans])
+    click.echo("Sent to the indexing queue {0} loans".format(len(rec_loans)))
+
+    click.secho("Now indexing...", fg="green")
+    # process queue so items can resolve circulation status correctly
+    indexer.process_bulk_queue()
+    current_search.flush_and_refresh(index="*")
+
+    # index eitems
+    indexer.bulk_index([str(r.id) for r in rec_eitems])
+    click.echo("Sent to the indexing queue {0} eitems".format(len(rec_eitems)))
+
+    # index items
+    indexer.bulk_index([str(r.id) for r in rec_items])
+    click.echo("Sent to the indexing queue {0} items".format(len(rec_items)))
+
+    click.secho("Now indexing...", fg="green")
+    # process queue so documents can resolve circulation correctly
+    indexer.process_bulk_queue()
+    current_search.flush_and_refresh(index="*")
+
+    # index libraries
+    indexer.bulk_index([str(r.id) for r in rec_libraries])
+    click.echo("Sent to the indexing queue {0} libraries".format(len(rec_libraries)))
+
+    # index borrowing requests
+    indexer.bulk_index([str(r.id) for r in rec_borrowing_requests])
+    click.echo(
+        "Sent to the indexing queue {0} borrowing requests".format(
+            len(rec_borrowing_requests)
+        )
+    )
+
+    click.secho("Now indexing...", fg="green")
+    indexer.process_bulk_queue()
+    current_search.flush_and_refresh(index="*")
+
+    # index documents
+    indexer.bulk_index([str(r.id) for r in rec_docs])
+    click.echo("Sent to the indexing queue {0} documents".format(len(rec_docs)))
+
+    # index document requests
+    indexer.bulk_index([str(r.id) for r in rec_requests])
+    click.echo(
+        "Sent to the indexing queue {0} document requests".format(len(rec_requests))
+    )
+
+    # index loans again
+    indexer.bulk_index([str(r.id) for r in rec_loans])
+    click.echo("Sent to the indexing queue {0} loans".format(len(rec_loans)))
+
+    # index items again
+    indexer.bulk_index([str(r.id) for r in rec_items])
+    click.echo("Sent to the indexing queue {0} items".format(len(rec_items)))
+
+    # index vendors
+    indexer.bulk_index([str(r.id) for r in rec_vendors])
+    click.echo("Sent to the indexing queue {0} vendors".format(len(rec_vendors)))
+
+    # index orders
+    indexer.bulk_index([str(r.id) for r in rec_orders])
+    click.echo("Sent to the indexing queue {0} orders".format(len(rec_orders)))
+
+    click.secho("Now indexing...", fg="green")
+    indexer.process_bulk_queue()
+    current_search.flush_and_refresh(index="*")
+
+
+def _run_command(command, verbose, catch_exceptions=False):
+    from invenio_base.app import create_cli
+
+    click.secho("ils {}...".format(command), fg="green")
+
+    cli = create_cli()
+    runner = current_app.test_cli_runner()
+
+    res = runner.invoke(cli, command, catch_exceptions=catch_exceptions)
+    if verbose:
+        click.secho(res.output)
