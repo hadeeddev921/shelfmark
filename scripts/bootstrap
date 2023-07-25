@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2018 CERN.
+# SPDX-License-Identifier: MIT
+
+set -e
+
+pip install -e .[lorem,opensearch2]
+CWD=`pwd`
+bash "${CWD}/scripts/build_assets"
