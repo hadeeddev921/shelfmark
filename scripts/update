@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2018 CERN.
+# SPDX-License-Identifier: MIT
+
+set -e
+
+script_path=$(dirname "$0")
+./"$script_path"/bootstrap
+
+invenio alembic upgrade
+invenio index init --force

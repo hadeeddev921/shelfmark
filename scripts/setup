@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2018-2023 CERN.
+# SPDX-License-Identifier: MIT
+
+ils setup --verbose
