@@ -1547,3 +1547,44 @@ def _run_command(command, verbose, catch_exceptions=False):
     res = runner.invoke(cli, command, catch_exceptions=catch_exceptions)
     if verbose:
         click.secho(res.output)
+
+
+@click.command()
+@click.option("--recreate-db", is_flag=True, help="Recreating DB.")
+@click.option("--skip-demo-data", is_flag=True, help="Skip creating demo data.")
+@click.option("--verbose", is_flag=True, help="Verbose output.")
+@click.option("--skip-admin", "skip_admin", is_flag=True)
+@with_appcontext
+def setup(
+    recreate_db,
+    skip_demo_data,
+    verbose,
+    skip_admin=False,
+):
+    """ILS setup command."""
+    import redis
+    from flask import current_app
+
+    click.secho("ils setup started...", fg="blue")
+
+    # Clean redis
+    redis.StrictRedis.from_url(current_app.config["CACHE_REDIS_URL"]).flushall()
+    click.secho("redis cache cleared...", fg="red")
+
+    # Remove and create db and indexes
+    if recreate_db:
+        _run_command("db destroy --yes-i-know", verbose=verbose, catch_exceptions=True)
+        _run_command("db init", verbose)
+    else:
+        _run_command("db drop --yes-i-know", verbose)
+    _run_command("db create", verbose)
+    _run_command("index destroy --force --yes-i-know", verbose)
+    _run_command("index init --force", verbose)
+    _run_command("index queue init purge", verbose)
+    # Generate demo data
+    if not skip_demo_data:
+        cmd = "demo data {}".format("--verbose" if verbose else "")
+        cmd = f'{cmd} {"--skip-admin" if skip_admin else ""}'
+        _run_command(cmd, verbose)
+
+    click.secho("ils setup finished successfully", fg="blue")
