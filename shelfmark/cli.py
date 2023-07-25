@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: MIT
 
 """CLI for Shelfmark."""
+
+import importlib.resources
 import json
 import os
 import pathlib
@@ -15,10 +17,15 @@ import click
 import lorem
 from flask import current_app
 from flask.cli import with_appcontext
+from invenio_access.permissions import system_identity
+from invenio_accounts.models import User
 from invenio_circulation.api import Loan
 from invenio_circulation.pidstore.pids import CIRCULATION_LOAN_PID_TYPE
 from invenio_db import db
+from invenio_i18n.proxies import current_i18n
 from invenio_indexer.api import RecordIndexer
+from invenio_pages.proxies import current_pages_service
+from invenio_pages.records.errors import PageNotFoundError
 from invenio_pidstore.models import PersistentIdentifier, PIDStatus
 from invenio_pidstore.providers.recordid_v2 import RecordIdProviderV2
 from invenio_search import current_search
@@ -1588,3 +1595,70 @@ def setup(
         _run_command(cmd, verbose)
 
     click.secho("ils setup finished successfully", fg="blue")
+
+
+@click.group()
+def fixtures():
+    """Create initial data and demo records."""
+
+
+@fixtures.command()
+@with_appcontext
+def pages():
+    """Register static pages."""
+
+    def get_page_content(page):
+        with importlib.resources.files("shelfmark").joinpath(
+            "static_pages", page
+        ).open("rb") as f:
+            return f.read().decode("utf8")
+
+    pages_data = [
+        {
+            "url": "/about",
+            "title": "About",
+            "description": "About",
+            "content": "Shelfmark about page",
+        },
+        {
+            "url": "/contact",
+            "title": "Contact",
+            "description": "Contact",
+            "content": (
+                "You can contact Shelfmark developers on "
+                '<a href="https://github.com/hadeeddev921/shelfmark/issues">'
+                "our issue tracker</a>"
+            ),
+        },
+        {
+            "url": "/guide/search",
+            "title": "Search guide",
+            "description": "Search guide",
+            "template": "search_guide.html",
+        },
+    ]
+
+    supported_languages = current_i18n.get_languages()
+
+    for entry in pages_data:
+        url = entry["url"]
+        for lang in supported_languages:
+            lang_code = lang[0]
+            try:
+                current_pages_service.read_by_url(system_identity, url, lang_code)
+            except PageNotFoundError:
+                page = {
+                    "url": url,
+                    "title": entry.get("title", ""),
+                    "description": entry.get("description", ""),
+                    "lang": lang_code,
+                    "template_name": current_app.config["PAGES_DEFAULT_TEMPLATE"],
+                    "content": (
+                        get_page_content(entry["template"])
+                        if entry.get("template")
+                        else entry.get("content", "")
+                    ),
+                }
+                current_pages_service.create(system_identity, page)
+
+    click.echo("Static pages created :)")
