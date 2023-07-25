@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2018 CERN.
+# SPDX-License-Identifier: MIT
+
+set -e
+
+invenio shell

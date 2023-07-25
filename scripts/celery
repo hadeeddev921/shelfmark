@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2018 CERN.
+# SPDX-License-Identifier: MIT
+
+# You can pass the --beat argument if you want the beat to run
+celery -A invenio_app.celery worker -l INFO
