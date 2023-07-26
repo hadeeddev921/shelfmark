@@ -38,6 +38,7 @@ Main features:
 - **Permissions**: roles for admins, librarians, read-only librarians and patrons.
 - **Vocabularies**: languages, countries, licenses and other controlled lists, loaded
   from the command line.
+- **Demo data**: one command creates users, records and loans to explore the system.
 
 ## How It Works
 
@@ -87,6 +88,7 @@ shelfmark/
 ├── shelfmark/                  # The Python package
 │   ├── ext.py                  # Flask extensions that register the ILS REST and UI apps
 │   ├── config.py               # Default settings: REST endpoints, search facets, Celery schedule, mail
+│   ├── cli.py                  # `setup`, `demo` and `fixtures` commands (demo users, records, loans)
 │   ├── permissions.py          # Role-based access rules for every action
 │   ├── records/                # Base record API, metadata extensions and shared serializers
 │   ├── documents/              # Documents: schema, mappings, loaders, resolvers, search, serializers
@@ -110,9 +112,13 @@ shelfmark/
 │   ├── files/                  # File upload endpoints for e-items
 │   ├── vocabularies/           # Controlled vocabularies and their CLI
 │   ├── templates/              # Jinja templates for emails and pages
+│   ├── static_pages/           # HTML for static pages such as the search guide
 │   └── assets/                 # Theme files for the web assets build
 ├── tests/                      # Pytest suite: conftest fixtures, test data and API tests per module
+├── scripts/                    # Helper scripts: bootstrap, setup, server, celery, console, update
+├── docker/                     # Dockerfiles for the backend, the nginx frontend and the HAProxy load balancer
 ├── docker-compose.yml          # Services for local development (PostgreSQL, Redis, RabbitMQ, OpenSearch)
+├── docker-compose.full.yml     # Full stack: backend, worker, frontend, load balancer and services
 ├── docker-services.yml         # Shared service definitions used by both compose files
 ├── pyproject.toml              # Package metadata, dependencies and entry points
 └── .env.example                # Example environment variables
@@ -141,16 +147,17 @@ Each record module (for example `documents/`) has the same layout: `api.py`,
 | Other Invenio modules | `invenio-oaiserver` 4.x, `invenio-pages` 8.x, `invenio-mail` 2.x, `invenio-i18n` 3.x | OAI-PMH harvesting, static pages, email, translations |
 | Testing | `pytest-invenio` ≥ 3.4.2, `pytest-mock`, `docker-services-cli` ≥ 0.6.0 | Test fixtures and temporary services |
 | Packaging | Hatchling | Builds the package from `pyproject.toml` |
+| Deployment | Docker, nginx 1.18, HAProxy 2.2, uWSGI | Containers, TLS, static files and load balancing |
 
 ## How to Run This Project
-
-The application is still being assembled. These steps prepare a development
-environment.
 
 ### 1. Prerequisites
 
 - Python 3.9 or newer
 - Docker and Docker Compose
+- Node.js and npm (used by `ils webpack buildall` to build the web assets)
+- OpenSSL (to create the local development certificate)
+- The web interface lives in a separate React app. This repository is the API it talks to.
 
 ### 2. Clone
 
@@ -164,8 +171,11 @@ cd shelfmark
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e ".[opensearch2]"
+./scripts/bootstrap
 ```
+
+`scripts/bootstrap` runs `pip install -e .[lorem,opensearch2]`, then builds the web
+assets with `ils collect -v` and `ils webpack buildall`.
 
 ### 4. Environment variables
 
@@ -177,12 +187,76 @@ cp .env.example .env
 set -a; source .env; set +a
 ```
 
-See `.env.example` for the database, Redis, RabbitMQ and OpenSearch settings.
+| Variable | Description | Example |
+|---|---|---|
+| `INVENIO_SECRET_KEY` | Secret used to sign sessions and tokens | `change-me-to-a-long-random-string` |
+| `INVENIO_SQLALCHEMY_DATABASE_URI` | PostgreSQL connection string | `postgresql+psycopg2://test:psw@localhost/ils` |
+| `INVENIO_CACHE_TYPE` | Cache backend | `redis` |
+| `INVENIO_CACHE_REDIS_URL` | Redis database for the cache | `redis://localhost:6379/0` |
+| `INVENIO_ACCOUNTS_SESSION_REDIS_URL` | Redis database for user sessions | `redis://localhost:6379/1` |
+| `INVENIO_CELERY_RESULT_BACKEND` | Redis database for Celery results | `redis://localhost:6379/2` |
+| `INVENIO_RATELIMIT_STORAGE_URI` | Redis database for rate limiting | `redis://localhost:6379/3` |
+| `INVENIO_BROKER_URL` | RabbitMQ URL | `amqp://guest:guest@localhost:5672/` |
+| `INVENIO_CELERY_BROKER_URL` | RabbitMQ URL used by Celery | `amqp://guest:guest@localhost:5672/` |
+| `INVENIO_SEARCH_HOSTS` | OpenSearch hosts | `['localhost:9200']` |
+| `INVENIO_SPA_HOST` | URL of the React web app | `https://127.0.0.1:3000` |
+| `INVENIO_REST_CSRF_ENABLED` | CSRF check on the REST API (turn off only for local development) | `True` |
+| `DOCKER_SERVICES_IP_BIND` | Host IP that Docker binds service ports to | `127.0.0.1` |
 
-### 5. Start the services
+### 5. Start the services and create a development certificate
 
 ```bash
 docker compose up -d
 ```
 
 This starts PostgreSQL, Redis, RabbitMQ, OpenSearch and OpenSearch Dashboards.
+
+The development server and the Docker frontend use a self-signed certificate, which is
+not stored in the repository. Create it once:
+
+```bash
+openssl req -x509 -newkey rsa:4096 -nodes -days 365 -subj "/CN=127.0.0.1" \
+  -keyout docker/frontend/test.key -out docker/frontend/test.crt
+cat docker/frontend/test.crt docker/frontend/test.key > docker/lb/haproxy_cert.pem
+```
+
+### 6. Database setup
+
+```bash
+./scripts/setup
+```
+
+This runs `ils setup --verbose`. It clears the Redis cache, recreates the database
+tables and search indices, and loads demo data. Use `ils setup --skip-demo-data` for an
+empty system, or `ils setup --recreate-db` to destroy and recreate the database itself.
+
+The demo data creates these accounts, all with the password `123456`:
+
+| Email | Role |
+|---|---|
+| `admin@test.ch` | Admin |
+| `librarian@test.ch` | Librarian |
+| `readonly@test.ch` | Read-only librarian |
+| `patron1@test.ch` … `patron4@test.ch` | Patrons |
+
+### 7. Run
+
+Start the web server:
+
+```bash
+./scripts/server
+```
+
+The API is served at `https://127.0.0.1:5000/api/`. For example,
+`https://127.0.0.1:5000/api/documents/` lists the catalogue. Your browser will warn
+about the self-signed certificate.
+
+In a second terminal (with the virtual environment and `.env` loaded), start the Celery
+worker for notifications and background jobs:
+
+```bash
+./scripts/celery
+```
+
+Other helpers: `./scripts/console` opens an Invenio shell, and `./scripts/update`
+reinstalls, runs `invenio alembic upgrade` and re-initialises the search indices.
