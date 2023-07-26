@@ -1,0 +1,77 @@
+[
+  {
+    "document_pid": "docid-1",
+    "provider_pid": "ill-provid-1",
+    "patron_pid": "1",
+    "pid": "illbid-1",
+    "status": "PENDING",
+    "type": "PHYSICAL_COPY"
+  },
+  {
+    "document_pid": "docid-2",
+    "provider_pid": "ill-provid-1",
+    "patron_pid": "2",
+    "pid": "illbid-2",
+    "status": "REQUESTED",
+    "type": "DIGITAL"
+  },
+  {
+    "document_pid": "docid-3",
+    "provider_pid": "ill-provid-2",
+    "patron_pid": "1",
+    "pid": "illbid-3",
+    "status": "ON_LOAN",
+    "type": "PHYSICAL_COPY"
+  },
+  {
+    "document_pid": "docid-4",
+    "provider_pid": "ill-provid-2",
+    "patron_pid": "1",
+    "pid": "illbid-4",
+    "status": "RETURNED",
+    "type": "PHYSICAL_COPY"
+  },
+  {
+    "document_pid": "docid-5",
+    "provider_pid": "ill-provid-2",
+    "patron_pid": "2",
+    "pid": "illbid-5",
+    "status": "CANCELLED",
+    "cancel_reason": "USER_CANCEL",
+    "type": "DIGITAL"
+  },
+  {
+    "document_pid": "docid-3",
+    "provider_pid": "ill-provid-1",
+    "patron_pid": "2",
+    "pid": "illbid-6",
+    "status": "ON_LOAN",
+    "type": "PHYSICAL_COPY"
+  },
+  {
+    "document_pid": "docid-3",
+    "provider_pid": "ill-provid-1",
+    "patron_pid": "1",
+    "pid": "illbid-7",
+    "status": "ON_LOAN",
+    "type": "PHYSICAL_COPY",
+    "patron_loan": {
+      "extension": {
+        "status": "PENDING"
+      }
+    }
+  },
+  {
+    "document_pid": "docid-3",
+    "provider_pid": "ill-provid-1",
+    "patron_pid": "1",
+    "pid": "illbid-8",
+    "status": "ON_LOAN",
+    "type": "PHYSICAL_COPY",
+    "patron_loan": {
+      "extension": {
+        "status": "DECLINED"
+      }
+    }
+  }
+]

@@ -1,0 +1,77 @@
+[
+  {
+    "pid": "dreq-1",
+    "state": "PENDING",
+    "patron_pid": "1",
+    "medium": "PAPER",
+    "title": "Test title 1",
+    "request_type": "LOAN",
+    "document_pid": "docid-1",
+    "physical_item_provider": {
+      "pid": "acqoid-1",
+      "pid_type": "acqoid"
+    }
+  },
+  {
+    "pid": "dreq-2",
+    "state": "DECLINED",
+    "patron_pid": "2",
+    "request_type": "BUY",
+    "medium": "PAPER",
+    "title": "Test title 2",
+    "decline_reason": "Test."
+  },
+  {
+    "pid": "dreq-3",
+    "state": "ACCEPTED",
+    "patron_pid": "3",
+    "request_type": "LOAN",
+    "medium": "PAPER",
+    "document_pid": "docid-1",
+    "title": "Test title 3",
+    "physical_item_provider": {
+      "pid": "acqoid-1",
+      "pid_type": "acqoid"
+    }
+  },
+
+  {
+    "pid": "dreq-4",
+    "state": "ACCEPTED",
+    "patron_pid": "4",
+    "request_type": "BUY",
+    "medium": "PAPER",
+    "document_pid": "docid-2",
+    "title": "Test title 4",
+    "physical_item_provider": {
+      "pid": "acqoid-1",
+      "pid_type": "acqoid"
+    }
+  },
+  {
+    "pid": "dreq-5",
+    "state": "PENDING",
+    "patron_pid": "1",
+    "medium": "PAPER",
+    "title": "Test title 1",
+    "request_type": "LOAN",
+    "document_pid": "docid-1",
+    "physical_item_provider": {
+      "pid": "acqoid-1",
+      "pid_type": "acqoid"
+    }
+  },
+  {
+    "pid": "dreq-6",
+    "state": "PENDING",
+    "patron_pid": "1",
+    "medium": "PAPER",
+    "title": "Test title 1",
+    "request_type": "LOAN",
+    "document_pid": "docid-1",
+    "physical_item_provider": {
+      "pid": "acqoid-1",
+      "pid_type": "acqoid"
+    }
+  }
+]
