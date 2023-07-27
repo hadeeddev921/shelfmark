@@ -1,0 +1,38 @@
+# SPDX-FileCopyrightText: 2019-2026 CERN.
+# SPDX-License-Identifier: MIT
+
+"""Tests for document resolvers."""
+
+from shelfmark.documents.api import Document
+
+
+def test_document_resolvers(app, testdata):
+    """Test item resolving from loan."""
+    doc_pid = testdata["documents"][0]["pid"]
+    document = Document.get_record_by_pid(doc_pid)
+    document = document.replace_refs()
+
+    # relations
+    assert "relations" in document
+
+    # circulation
+    assert "active_loans_count" in document["circulation"]
+    assert "pending_loans_count" in document["circulation"]
+    assert "overdue_loans_count" in document["circulation"]
+    assert "past_loans_count" in document["circulation"]
+
+    # item and eitems
+    assert document["items"]["total"] == 10 and document["items"]["hits"]
+    assert document["eitems"]["total"] == 3 and document["eitems"]["hits"]
+
+    # stock
+    mediums = set([item["medium"] for item in document["items"]["hits"]])
+    mediums.add("E-BOOK")
+    assert set(document["stock"]["mediums"]) == mediums
+
+    # internal location - restricted
+    # only one item is inside a restricted internal location
+    for item in document["items"]["hits"]:
+        assert item["internal_location"]["restricted"] is (
+            item["pid"] == "itemid-75-in-archive"
+        )
