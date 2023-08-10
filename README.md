@@ -120,6 +120,7 @@ shelfmark/
 ├── docker-compose.yml          # Services for local development (PostgreSQL, Redis, RabbitMQ, OpenSearch)
 ├── docker-compose.full.yml     # Full stack: backend, worker, frontend, load balancer and services
 ├── docker-services.yml         # Shared service definitions used by both compose files
+├── run-tests.sh                # Starts test services and runs one test module with pytest
 ├── pyproject.toml              # Package metadata, dependencies and entry points
 └── .env.example                # Example environment variables
 ```
@@ -260,3 +261,16 @@ worker for notifications and background jobs:
 
 Other helpers: `./scripts/console` opens an Invenio shell, and `./scripts/update`
 reinstalls, runs `invenio alembic upgrade` and re-initialises the search indices.
+
+### 8. Run tests
+
+```bash
+pip install -e ".[tests,lorem,opensearch2]"
+./run-tests.sh circulation
+```
+
+`run-tests.sh` starts temporary services with `docker-services-cli`, runs
+`tests/api/<module>` with pytest and stops the services afterwards. The test modules are
+`acquisition`, `circulation`, `document_requests`, `ill` and `ils`. Add `-K` to keep the
+services running, and pass any other option straight to pytest, for example
+`./run-tests.sh ils -k documents`.
